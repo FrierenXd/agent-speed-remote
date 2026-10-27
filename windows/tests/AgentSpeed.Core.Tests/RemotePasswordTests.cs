@@ -82,7 +82,7 @@ public sealed class RemotePasswordTests
         try
         {
             var start = new ProcessStartInfo("/bin/sh") { RedirectStandardOutput = true, RedirectStandardError = true };
-            start.ArgumentList.Add("-c"); start.ArgumentList.Add("\"$SSH_ASKPASS\" \"user@server's password: \"");
+            start.ArgumentList.Add("-c"); start.ArgumentList.Add("\"$SSH_ASKPASS\" \"user@server's password: \"; code=$?; exit \"$code\"");
             using (var authentication = RemotePasswordPrompt.Configure(host, start))
             {
                 directory = Path.GetDirectoryName(start.Environment["SSH_ASKPASS"])!;

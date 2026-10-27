@@ -34,7 +34,7 @@ struct RemoteTests {
         do {
             let child = Process(), output = Pipe()
             child.executableURL = URL(fileURLWithPath: "/bin/sh")
-            child.arguments = ["-c", "\"$SSH_ASKPASS\" \"user@server's password: \""]
+            child.arguments = ["-c", "\"$SSH_ASKPASS\" \"user@server's password: \"; code=$?; exit \"$code\""]
             child.standardOutput = output
             let authentication = try #require(try SSHPasswordPrompt.configure(host, process: child))
             let env = try #require(child.environment)
