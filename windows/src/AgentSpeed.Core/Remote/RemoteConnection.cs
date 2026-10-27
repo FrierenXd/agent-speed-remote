@@ -90,13 +90,14 @@ public sealed class RemoteConnection
                 {
                     await process.WaitForExitAsync(streamToken).ConfigureAwait(false);
                     // Do not repeatedly submit a bad password and lock the remote account.
-                    if (process.ExitCode == 255) { status("authenticationFailed"); return; }
+                    if (!receivedFrame && authentication?.WasRequested == true && process.ExitCode != 0)
+                    { status("authenticationFailed"); return; }
                 }
             }
             catch (Exception e) when (e is IOException or System.Text.Json.JsonException or ArgumentException
                 or System.ComponentModel.Win32Exception or OperationCanceledException or UnauthorizedAccessException)
             {
-                if (authenticationHost?.Authentication == "password" && started && !receivedFrame && !cancellationToken.IsCancellationRequested)
+                if (authentication?.WasRequested == true && started && !receivedFrame && !cancellationToken.IsCancellationRequested)
                 { status("authenticationFailed"); return; }
                 status(e is System.Text.Json.JsonException ? "protocolError" : "disconnected");
             }

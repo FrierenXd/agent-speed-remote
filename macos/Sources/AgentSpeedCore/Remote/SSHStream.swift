@@ -47,14 +47,14 @@ final class SSHStream: @unchecked Sendable {
             }
             watchdog.resume()
             var receivedFrame = false
+            var authentication: SSHPasswordPrompt?
             do {
                 if host.authentication == "password", RemotePasswords.shared.get(host).isEmpty {
                     status("passwordRequired"); watchdog.cancel()
                     errors.fileHandleForReading.readabilityHandler = nil
                     return
                 }
-                let authentication = try SSHPasswordPrompt.configure(host, process: child)
-                defer { withExtendedLifetime(authentication) {} }
+                authentication = try SSHPasswordPrompt.configure(host, process: child)
                 try lock.withLock {
                     guard !cancelled else { throw RemoteError.connectionClosed }
                     process = child; lastRead = ProcessInfo.processInfo.systemUptime
@@ -84,10 +84,11 @@ final class SSHStream: @unchecked Sendable {
             lock.withLock { if child.isRunning { kill(child.processIdentifier, SIGKILL) }; process = nil }
             if child.processIdentifier > 0 { child.waitUntilExit() }
             try? output.fileHandleForReading.close(); try? errors.fileHandleForReading.close()
-            if host.authentication == "password", child.processIdentifier > 0, !isCancelled,
-               child.terminationStatus == 255 || !receivedFrame {
+            if authentication?.wasRequested == true, !receivedFrame, child.processIdentifier > 0, !isCancelled,
+               child.terminationStatus != 0 {
                 status("authenticationFailed"); return
             }
+            authentication = nil
             for _ in 0..<(backoff * 10) { if isCancelled { return }; Thread.sleep(forTimeInterval: 0.1) }
             backoff = min(60, backoff * 2)
         }

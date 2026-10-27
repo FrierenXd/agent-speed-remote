@@ -46,10 +46,15 @@ await RemoteConnection.RunCore(() => { attempts++; return Configure(host.StartIn
 if (attempts != 1 || !statuses.Contains("authenticationFailed")) throw new Exception("Bad password was retried or not reported");
 Console.WriteLine("WRONG PASSWORD REJECTED WITHOUT RETRY: PASS");
 RemotePasswords.Set(host, password);
-attempts = 0; statuses.Clear();
-await RemoteConnection.RunCore(() => { attempts++; return Configure(host.StartInfo("UTC"), untrusted: true); },
-    "UTC", _ => {}, statuses.Add, timeout.Token, host);
-if (attempts != 1 || !statuses.Contains("authenticationFailed")) throw new Exception("Untrusted password host was not rejected");
+attempts = 0;
+var untrusted = new RemoteDeployment(name => File.OpenRead(Path.Combine(args[1], name))) {
+    ConfigureStart = info => { attempts++; return Configure(info, untrusted: true); }
+};
+try {
+    await untrusted.DeployAsync(host, cancellationToken: timeout.Token);
+    throw new Exception("Untrusted password host was accepted");
+} catch (IOException error) when (error.Message.Contains("Host key verification failed")) { }
+if (attempts != 1) throw new Exception("Untrusted deployment was retried");
 Console.WriteLine("PASSWORD MODE STILL REJECTS UNKNOWN HOST: PASS");
 RemotePasswords.Set(host, "");
 '''

@@ -462,7 +462,7 @@ enum StringTable {
         "remote.name": Entry("顯示名稱", "显示名称", "Display Name", "表示名"),
         "remote.password": Entry("SSH 密碼（僅本次執行）", "SSH 密码（仅本次运行）", "SSH password (this session only)", "SSH パスワード（今回のみ）"),
         "remote.password.hint": Entry("密碼只保留在記憶體，用於部署、連線及重新連線；不寫入設定或日誌。重新啟動後需再輸入。僅支援帳號密碼，不支援 OTP。", "密码只保留在内存，用于部署、连接及重连；不写入配置或日志。重启后需重新输入。仅支持账户密码，不支持 OTP。", "Kept in memory for deployment, connection and reconnect; never saved in settings or logs. Re-enter after restarting. Account passwords only, not OTP.", "配置・接続・再接続用にメモリ内だけに保持し、設定やログには保存しません。再起動後は再入力が必要です。OTP は非対応です。"),
-        "remote.password.invalid": Entry("密碼不可包含換行或 NUL，且長度不可超過 1024 字元（macOS：3072 位元組）。", "密码不能包含换行或 NUL，且长度不能超过 1024 字符（macOS：3072 字节）。", "Use a single-line password, without NUL, up to 1024 characters (macOS: 3072 bytes).", "改行・NUL なしのパスワードを入力してください。最大1024文字（macOS：3072バイト）です。"),
+        "remote.password.invalid": Entry("密碼不可包含換行或 NUL，且長度不可超過 1022 個 UTF-8 位元組。", "密码不能包含换行或 NUL，且长度不能超过 1022 个 UTF-8 字节。", "Use a single-line password, without NUL, up to 1022 UTF-8 bytes.", "改行・NUL なしのパスワードを入力してください。最大1022 UTF-8バイトです。"),
         "remote.remove": Entry("移除", "移除", "Remove", "削除"),
         "remote.shell": Entry("遠端 Shell", "远端 Shell", "Remote Shell", "リモートシェル"),
         "remote.status.authenticationFailed": Entry("SSH 登入失敗；請檢查密碼、主機指紋及網路後重新套用（已暫停重試）", "SSH 登录失败；请检查密码、主机指纹和网络后重新应用（已暂停重试）", "SSH login failed; check password, host trust and network, then apply again (retries paused)", "SSH ログイン失敗。パスワード・ホスト鍵・接続を確認して再適用してください（再試行停止中）"),

@@ -13,6 +13,8 @@ public sealed class RemotePasswordPrompt : IDisposable
     private NamedPipeServerStream? _server;
     private string? _directory;
     private int _fifo = -1;
+    private int _requested;
+    public bool WasRequested => Volatile.Read(ref _requested) != 0 || _directory is not null && File.Exists(Path.Combine(_directory, "requested"));
     private readonly TaskCompletionSource<int> _sshPid = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public void Started(int processId)
@@ -64,13 +66,26 @@ public sealed class RemotePasswordPrompt : IDisposable
         catch { prompt.Dispose(); throw; }
     }
 
-    internal const string PosixHelper = "#!/bin/sh\ncase \"$1\" in *[Pp]assphrase*|*[Pp]asscode*) exit 1;; *[Pp]assword*) ;; *) exit 1;; esac\n[ -z \"$SSH_ASKPASS_PROMPT\" ] || exit 1\npidfile=\"${AGENTSPEED_ASKPASS_ENDPOINT%/*}/pid\"\ni=0\nwhile [ ! -s \"$pidfile\" ] && [ \"$i\" -lt 40 ]; do sleep 0.05; i=$((i+1)); done\nIFS= read -r expected < \"$pidfile\" || exit 1\n[ \"$PPID\" = \"$expected\" ] || exit 1\nIFS= read -r secret < \"$AGENTSPEED_ASKPASS_ENDPOINT\" || exit 1\nprintf '%s\\n' \"$secret\"\n";
+    internal const string PosixHelper = """
+    #!/bin/sh
+    case "$1" in *"'s password: "|*"'s password:") ;; *) exit 1;; esac
+    [ -z "$SSH_ASKPASS_PROMPT" ] || exit 1
+    pidfile="${AGENTSPEED_ASKPASS_ENDPOINT%/*}/pid"
+    i=0
+    while [ ! -s "$pidfile" ] && [ "$i" -lt 40 ]; do sleep 0.05; i=$((i+1)); done
+    IFS= read -r expected < "$pidfile" || exit 1
+    : > "${AGENTSPEED_ASKPASS_ENDPOINT%/*}/requested"
+    [ "$PPID" = "$expected" ] || exit 1
+    IFS= read -r secret < "$AGENTSPEED_ASKPASS_ENDPOINT" || exit 1
+    printf '%s\n' "$secret"
+    """ + "\n";
 
     private async Task Serve(string password)
     {
         try
         {
             await _server!.WaitForConnectionAsync(_stop.Token).ConfigureAwait(false);
+            Interlocked.Exchange(ref _requested, 1);
             var expected = await _sshPid.Task.WaitAsync(_stop.Token).ConfigureAwait(false);
             // A ProxyJump/ProxyCommand child must not receive the destination's password.
             if (OperatingSystem.IsWindows() && (!GetNamedPipeClientProcessId(_server.SafePipeHandle, out var client)
@@ -87,8 +102,7 @@ public sealed class RemotePasswordPrompt : IDisposable
     public static int? TryRunHelper(string[] args)
     {
         if (Environment.GetEnvironmentVariable("AGENTSPEED_ASKPASS_MODE") != "1") return null;
-        if (args.Length != 1 || !args[0].Contains("password", StringComparison.OrdinalIgnoreCase)
-            || args[0].Contains("passphrase", StringComparison.OrdinalIgnoreCase)
+        if (args.Length != 1 || !args[0].TrimEnd().EndsWith("'s password:", StringComparison.OrdinalIgnoreCase)
             || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SSH_ASKPASS_PROMPT"))) return 1;
         var endpoint = Environment.GetEnvironmentVariable(EndpointVariable);
         if (endpoint is null || !endpoint.StartsWith("AgentSpeed-askpass-", StringComparison.Ordinal)) return 1;
@@ -96,9 +110,22 @@ public sealed class RemotePasswordPrompt : IDisposable
         {
             using var pipe = new NamedPipeClientStream(".", endpoint, PipeDirection.InOut, PipeOptions.CurrentUserOnly);
             pipe.Connect(10_000);
-            using var output = Console.OpenStandardOutput();
-            pipe.CopyTo(output); output.Flush();
-            return 0;
+            var bytes = new byte[1024];
+            try
+            {
+                var count = 0;
+                while (count < bytes.Length)
+                {
+                    var read = pipe.Read(bytes, count, bytes.Length - count);
+                    if (read == 0) break;
+                    count += read;
+                }
+                if (count == 0 || count == bytes.Length) return 1;
+                using var output = Console.OpenStandardOutput();
+                output.Write(bytes, 0, count); output.Flush();
+                return 0;
+            }
+            finally { Array.Clear(bytes); }
         }
         catch (Exception e) when (e is IOException or TimeoutException or UnauthorizedAccessException) { return 1; }
     }

@@ -28,7 +28,7 @@ async Task Check(bool trusted) {
     var errors = child.StandardError.ReadToEndAsync();
     await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(30));
     var text = await output;
-    if (trusted ? child.ExitCode != 0 || text != secret + "\n" : text.Length != 0)
+    if (trusted ? child.ExitCode != 0 || text != secret + "\n" : text.Length != 0 || child.ExitCode == 0)
         throw new Exception("Packaged Windows askpass helper failed its IPC/stdout/parent check");
     await errors;
 }

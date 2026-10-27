@@ -102,7 +102,7 @@ struct RemoteHostsSection: View {
         let passwordHosts = hosts.filter { $0.authentication == "password" }
         guard passwordHosts.allSatisfy({ host in
             let password = passwords[host.id] ?? ""
-            return password.utf8.count <= 3072 && !password.contains(where: { $0 == "\0" || $0 == "\r" || $0 == "\n" })
+            return password.utf8.count <= 1022 && !password.contains(where: { $0 == "\0" || $0 == "\r" || $0 == "\n" })
         }) else { deploymentError = model.l10n("remote.password.invalid"); return false }
         RemotePasswords.shared.retain(hosts)
         for host in passwordHosts { try? RemotePasswords.shared.set(host, password: passwords[host.id] ?? "") }

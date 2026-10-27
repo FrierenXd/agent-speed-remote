@@ -20,6 +20,8 @@ struct RemoteTests {
         #expect(args.contains("ControlPath=none"))
         #expect(!args.joined().contains(secret))
         #expect(throws: (any Error).self) { try RemotePasswords.shared.set(host, password: "bad\npassword") }
+        #expect(throws: (any Error).self) { try RemotePasswords.shared.set(host, password: String(repeating: "x", count: 1023)) }
+        #expect(throws: (any Error).self) { try RemotePasswords.shared.set(host, password: String(repeating: "\u{4e00}", count: 341)) }
         another.authentication = "otp"; #expect(!another.isValid)
         let legacy = try JSONDecoder().decode(RemoteHost.self, from: Data(#"{"id":"old","name":"Old","destination":"server","executable":"collector","enabled":true}"#.utf8))
         #expect(legacy.arguments(timeZone: "UTC", sources: []).contains("BatchMode=yes"))

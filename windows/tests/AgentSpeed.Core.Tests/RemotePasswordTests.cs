@@ -39,6 +39,8 @@ public sealed class RemotePasswordTests
         Assert.Null(RemotePasswordPrompt.Configure(host, start));
         Assert.False((host with { Authentication = "otp" }).IsValid);
         Assert.Throws<ArgumentException>(() => RemotePasswords.Set(host, "not\na password"));
+        Assert.Throws<ArgumentException>(() => RemotePasswords.Set(host, new string('x', 1023)));
+        Assert.Throws<ArgumentException>(() => RemotePasswords.Set(host, new string('\u4e00', 341)));
     }
 
     [Fact]
@@ -64,10 +66,30 @@ public sealed class RemotePasswordTests
             {
                 attempts++;
                 var start = new ProcessStartInfo("/bin/sh") { RedirectStandardOutput = true, RedirectStandardError = true, RedirectStandardInput = true };
-                start.ArgumentList.Add("-c"); start.ArgumentList.Add("exit 255"); return start;
+                start.ArgumentList.Add("-c"); start.ArgumentList.Add("\"$SSH_ASKPASS\" \"user@server's password: \" >/dev/null; exit 255"); return start;
             }, "UTC", _ => { }, statuses.Add, timeout.Token, host);
             Assert.Equal(1, attempts);
             Assert.Contains("authenticationFailed", statuses);
+        }
+        finally { RemotePasswords.Set(host, ""); }
+    }
+
+    [Fact]
+    public async Task NetworkErrorsBeforePasswordPromptStillReconnect()
+    {
+        if (OperatingSystem.IsWindows()) return;
+        var host = Host(); RemotePasswords.Set(host, "unused password");
+        try
+        {
+            var attempts = 0;
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            await RemoteConnection.RunCore(() =>
+            {
+                if (++attempts == 2) timeout.Cancel();
+                var start = new ProcessStartInfo("/bin/sh") { RedirectStandardOutput = true, RedirectStandardError = true, RedirectStandardInput = true };
+                start.ArgumentList.Add("-c"); start.ArgumentList.Add("exit 255"); return start;
+            }, "UTC", _ => { }, _ => { }, timeout.Token, host);
+            Assert.Equal(2, attempts);
         }
         finally { RemotePasswords.Set(host, ""); }
     }

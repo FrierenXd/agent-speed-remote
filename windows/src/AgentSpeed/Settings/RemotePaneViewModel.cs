@@ -114,7 +114,7 @@ internal sealed class RemotePaneViewModel : ObservableObject
     private static RemoteHost ToHost(RemoteHostRow h) => new(h.Id, h.Name.Trim(), h.Destination.Trim(), h.Executable.Trim(), h.Enabled, h.Shell, h.Authentication);
     private bool SavePasswords()
     {
-        if (Hosts.Any(h => h.IsPassword && (h.Password.Length > 1024 || h.Password.Any(c => c is '\0' or '\r' or '\n'))))
+        if (Hosts.Any(h => h.IsPassword && (System.Text.Encoding.UTF8.GetByteCount(h.Password) > 1022 || h.Password.Any(c => c is '\0' or '\r' or '\n'))))
         { Error = _loc["remote.password.invalid"]; return false; }
         RemotePasswords.Retain(Hosts.Select(ToHost));
         foreach (var row in Hosts)

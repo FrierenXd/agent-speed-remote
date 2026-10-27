@@ -21,7 +21,7 @@
       <ComboBoxItem Content="{loc:Loc remote.authentication.password}" Tag="password" />
      </ComboBox>
      <TextBlock Text="{loc:Loc remote.password}" />
-     <PasswordBox IsEnabled="{Binding IsPassword}" IsEnabledChanged="PasswordEnabledChanged" PasswordChanged="PasswordChanged" Loaded="PasswordLoaded" MaxLength="1024" />
+     <PasswordBox IsEnabled="{Binding IsPassword}" IsEnabledChanged="PasswordEnabledChanged" PasswordChanged="PasswordChanged" Loaded="PasswordLoaded" MaxLength="1022" />
      <TextBlock Text="{loc:Loc remote.password.hint}" TextWrapping="Wrap" />
      <TextBlock Text="{loc:Loc remote.executable}" /><TextBox Text="{Binding Executable, UpdateSourceTrigger=PropertyChanged}" />
      <TextBlock Text="{loc:Loc remote.shell}" />

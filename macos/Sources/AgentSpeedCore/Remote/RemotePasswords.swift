@@ -17,8 +17,9 @@ public final class RemotePasswords: @unchecked Sendable {
     public func get(_ host: RemoteHost) -> String { lock.withLock { values[key(host)] ?? "" } }
     func revision(for host: RemoteHost) -> UInt64 { lock.withLock { host.authentication == "password" ? versions[key(host)] ?? 0 : 0 } }
     public func set(_ host: RemoteHost, password: String) throws {
-        guard password.utf8.count <= 3072, !password.contains(where: { $0 == "\0" || $0 == "\r" || $0 == "\n" }) else {
-            throw NSError(domain: "AgentSpeed.SSH", code: 1, userInfo: [NSLocalizedDescriptionKey: "The SSH password must be a single line of at most 3072 bytes."])
+        // Leave room for newline and NUL in OpenSSH's 1024-byte askpass buffer.
+        guard password.utf8.count <= 1022, !password.contains(where: { $0 == "\0" || $0 == "\r" || $0 == "\n" }) else {
+            throw NSError(domain: "AgentSpeed.SSH", code: 1, userInfo: [NSLocalizedDescriptionKey: "The SSH password must be a single line of at most 1022 UTF-8 bytes."])
         }
         lock.withLock { values[key(host)] = password.isEmpty ? nil : password; version &+= 1; versions[key(host)] = version }
     }
@@ -34,17 +35,19 @@ public final class RemotePasswords: @unchecked Sendable {
 final class SSHPasswordPrompt {
     private var directory: URL?
     private var fifo: Int32 = -1
+    var wasRequested: Bool { directory.map { FileManager.default.fileExists(atPath: $0.appendingPathComponent("requested").path) } ?? false }
     func started(_ processID: Int32) throws {
         if let directory { try (String(processID) + "\n").write(to: directory.appendingPathComponent("pid"), atomically: true, encoding: .utf8) }
     }
     static let helper = """
     #!/bin/sh
-    case "$1" in *[Pp]assphrase*|*[Pp]asscode*) exit 1;; *[Pp]assword*) ;; *) exit 1;; esac
+    case "$1" in *"'s password: "|*"'s password:") ;; *) exit 1;; esac
     [ -z "$SSH_ASKPASS_PROMPT" ] || exit 1
     pidfile="${AGENTSPEED_ASKPASS_ENDPOINT%/*}/pid"
     i=0
     while [ ! -s "$pidfile" ] && [ "$i" -lt 40 ]; do sleep 0.05; i=$((i+1)); done
     IFS= read -r expected < "$pidfile" || exit 1
+    : > "${AGENTSPEED_ASKPASS_ENDPOINT%/*}/requested"
     [ "$PPID" = "$expected" ] || exit 1
     IFS= read -r secret < "$AGENTSPEED_ASKPASS_ENDPOINT" || exit 1
     printf '%s\\n' "$secret"

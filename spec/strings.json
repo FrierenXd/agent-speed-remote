@@ -5173,10 +5173,10 @@
     "ja": "配置・接続・再接続用にメモリ内だけに保持し、設定やログには保存しません。再起動後は再入力が必要です。OTP は非対応です。"
   },
   "remote.password.invalid": {
-    "zh-Hant": "密碼不可包含換行或 NUL，且長度不可超過 1024 字元（macOS：3072 位元組）。",
-    "zh-Hans": "密码不能包含换行或 NUL，且长度不能超过 1024 字符（macOS：3072 字节）。",
-    "en": "Use a single-line password, without NUL, up to 1024 characters (macOS: 3072 bytes).",
-    "ja": "改行・NUL なしのパスワードを入力してください。最大1024文字（macOS：3072バイト）です。"
+    "zh-Hant": "密碼不可包含換行或 NUL，且長度不可超過 1022 個 UTF-8 位元組。",
+    "zh-Hans": "密码不能包含换行或 NUL，且长度不能超过 1022 个 UTF-8 字节。",
+    "en": "Use a single-line password, without NUL, up to 1022 UTF-8 bytes.",
+    "ja": "改行・NUL なしのパスワードを入力してください。最大1022 UTF-8バイトです。"
   },
   "remote.status.passwordRequired": {
     "zh-Hant": "請輸入 SSH 密碼並套用設定",
