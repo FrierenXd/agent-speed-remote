@@ -103,6 +103,7 @@ struct EngineOutput: Sendable {
     var sourceLiveCost: [SourceKind: LiveCost] = [:]
     var agents: [EngineAgentStatus]
     var history: [HistoryPoint]
+    var sourceHistory: [SourceKind: [HistoryPoint]] = [:]
     var today: TokenTotals
     var todayBySource: [SourceKind: TokenTotals]
     var averageToday: Double?

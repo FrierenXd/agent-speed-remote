@@ -242,6 +242,7 @@ public sealed record AppSettings
 
     /// <summary>Live reporting (DESIGN 11, Storage): settings and service identities, never keys.</summary>
     public ReportPreferences Report { get; init; } = ReportPreferences.Default;
+    public Core.Remote.RemoteSettings Remote { get; init; } = Core.Remote.RemoteSettings.Default;
 
     public bool IsSourceEnabled(SourceKind kind) => kind switch
     {
@@ -362,6 +363,7 @@ public sealed record AppSettings
         Cost = (Cost ?? CostSettings.Default).Validated(),
         Traffic = (Traffic ?? TrafficSettings.Default).Validated(),
         Report = (Report ?? ReportPreferences.Default).Validated(),
+        Remote = Remote is { IsValid: true } ? Remote : Core.Remote.RemoteSettings.Default,
     };
 
     internal static string? CleanTag(string? tag) =>

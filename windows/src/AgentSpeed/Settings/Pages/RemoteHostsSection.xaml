@@ -1,0 +1,37 @@
+<UserControl x:Class="AgentSpeed.Settings.Pages.RemoteHostsSection" x:ClassModifier="internal"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:loc="clr-namespace:AgentSpeed.Localization">
+ <StackPanel Margin="0,0,0,24">
+  <TextBlock Text="{loc:Loc remote.title}" Style="{StaticResource SectionHeaderText}" />
+  <TextBlock Text="{loc:Loc remote.hint}" TextWrapping="Wrap" Margin="0,8,0,12" />
+  <ComboBox ItemsSource="{Binding Choices}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding Selection, Mode=TwoWay}" HorizontalAlignment="Left" MinWidth="240" Margin="0,0,0,12" />
+  <TextBlock Text="{loc:Loc remote.deploy.hint}" TextWrapping="Wrap" Margin="0,0,0,12" />
+  <ItemsControl ItemsSource="{Binding Hosts}" IsEnabled="{Binding CanEdit}">
+   <ItemsControl.ItemTemplate><DataTemplate>
+    <StackPanel Margin="0,0,0,12">
+     <DockPanel>
+      <Button DockPanel.Dock="Right" Content="{loc:Loc remote.remove}" Command="{Binding DataContext.RemoveCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+      <CheckBox IsChecked="{Binding Enabled}" Content="{loc:Loc remote.enabled}" VerticalAlignment="Center" />
+     </DockPanel>
+     <TextBlock Text="{loc:Loc remote.name}" /><TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+     <TextBlock Text="{loc:Loc remote.destination}" /><TextBox Text="{Binding Destination, UpdateSourceTrigger=PropertyChanged}" />
+     <TextBlock Text="{loc:Loc remote.executable}" /><TextBox Text="{Binding Executable, UpdateSourceTrigger=PropertyChanged}" />
+     <TextBlock Text="{loc:Loc remote.shell}" />
+     <ComboBox SelectedValue="{Binding Shell}" SelectedValuePath="Tag">
+      <ComboBoxItem Content="POSIX (Linux / macOS)" Tag="posix" />
+      <ComboBoxItem Content="PowerShell (Windows)" Tag="powershell" />
+     </ComboBox>
+     <Button Content="{loc:Loc remote.deploy.action}" Command="{Binding DataContext.DeployCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" HorizontalAlignment="Left" Margin="0,8,0,0" />
+    </StackPanel>
+   </DataTemplate></ItemsControl.ItemTemplate>
+  </ItemsControl>
+  <StackPanel Orientation="Horizontal">
+   <Button Content="{loc:Loc remote.add}" Command="{Binding AddCommand}" Margin="0,0,8,0" />
+   <Button Content="{loc:Loc remote.apply}" Command="{Binding ApplyCommand}" />
+  </StackPanel>
+  <Button Content="{loc:Loc remote.deploy.cancel}" Command="{Binding CancelDeployCommand}" HorizontalAlignment="Left" Margin="0,8,0,0" />
+  <TextBlock Text="{Binding DeploymentStatus}" TextWrapping="Wrap" Margin="0,8,0,0" />
+  <TextBlock Text="{Binding Error}" TextWrapping="Wrap" Margin="0,8,0,0" />
+  <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Margin="0,8,0,0" />
+ </StackPanel>
+</UserControl>

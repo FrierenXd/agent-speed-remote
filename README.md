@@ -102,9 +102,23 @@ The full, testable specification lives in [`spec/METRICS.md`](spec/METRICS.md). 
 
 Ordinary Claude Desktop chat conversations are not stored on your computer, so they cannot be measured; WorkBuddy conversations that run in the cloud are not counted either.
 
+## Remote Hosts
+
+In **Settings → Sources → Remote Hosts**, add SSH destinations and switch between local, a single remote host, or
+all hosts. Click **Auto-deploy & connect / update** to detect the remote platform, upload the bundled collector,
+verify it and connect; no manual upload or administrator privileges. SSH key authentication and verified host
+trust must already work. Manual collector paths are still supported. It sends statistics, not transcripts.
+See [deployment and limitations](docs/REMOTE.md). Build collector archives with
+`./scripts/publish-collector.sh linux-x64` (.NET 10 SDK required).
+
 ## Privacy
 
-Read-only. Local-only. No telemetry, no accounts. Agent Speed makes only three kinds of automatic network requests, and each one sends nothing about you: the update check against GitHub Releases, a daily download of the public model price table from this repository (GitHub, with jsDelivr as a mirror), and — only when you show costs in a currency other than US dollars — a daily download of public exchange rates (open.er-api.com, with the fawazahmed0 currency API and Frankfurter as fallbacks). Every user requests the same files, so no server learns your currency, models or usage. One switch in Settings turns all network access off; costs then use the price table and rates shipped with the app. Agent Speed never stores or displays conversation content — only token counts, model names and project folder names. The usage history keeps only daily totals (including each day's API-equivalent cost), in a small database on your computer (`~/Library/Application Support/AgentSpeed`, `%LOCALAPPDATA%\AgentSpeed`), and can be cleared in Settings. Updates are verified against the release's SHA-256 checksums before they are installed; the checksums are published with the release, so they catch corrupted or tampered downloads, not a compromised repository. The price table is plain data checked against strict rules; it is not signed.
+Read-only. Local by default; remote monitoring requires explicit SSH host configuration. No telemetry, no accounts. Agent Speed makes only three kinds of automatic network requests, and each one sends nothing about you: the update check against GitHub Releases, a daily download of the public model price table from this repository (GitHub, with jsDelivr as a mirror), and — only when you show costs in a currency other than US dollars — a daily download of public exchange rates (open.er-api.com, with the fawazahmed0 currency API and Frankfurter as fallbacks). Every user requests the same files, so no server learns your currency, models or usage. One switch in Settings turns all network access off; costs then use the price table and rates shipped with the app. Agent Speed never stores or displays conversation content — only token counts, model names and project folder names. The usage history keeps only daily totals (including each day's API-equivalent cost), in a small database on your computer (`~/Library/Application Support/AgentSpeed`, `%LOCALAPPDATA%\AgentSpeed`), and can be cleared in Settings. Updates are verified against the release's SHA-256 checksums before they are installed; the checksums are published with the release, so they catch corrupted or tampered downloads, not a compromised repository. The price table is plain data checked against strict rules; it is not signed.
+
+Remote monitoring (optional): SSH sends only statistics between your configured machines, never conversations or project paths. The network master switch also stops SSH. Remote data is excluded from external live reporting; process traffic remains local-only. See [remote privacy](docs/REMOTE.md#5-隐私与边界).
+
+Explicit auto-deployment is the exception to read-only operation: it writes the bundled collector to the remote
+user's application directory, without installing a service, changing SSH configuration or requiring root.
 
 Network traffic: Agent Speed counts how many bytes programs send and receive, on this computer only. It never reads content, addresses or destinations; only live reporting (below), if you turn it on, sends your agents' byte counts to the service you chose. On Windows, per-agent traffic needs an optional helper service that runs as the restricted Local Service account and only counts bytes per process; it is installed and removed with one administrator prompt each ([details](spec/WINDOWS-SERVICE.md)).
 

@@ -1,2 +1,4 @@
 # Fixtures must stay byte-exact on every platform.
 spec/fixtures/** -text
+# These scripts are sent verbatim to POSIX shells even by a Windows desktop.
+macos/Sources/AgentSpeedCore/Remote/DeploymentScripts/* text eol=lf

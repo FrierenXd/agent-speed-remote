@@ -30,7 +30,7 @@ param(
     $ErrorActionPreference = 'Stop'
     $ProgressPreference = 'SilentlyContinue'
 
-    $Repo = 'zoefix/agent-speed'
+    $Repo = 'FrierenXd/agent-speed-remote'
     $AppName = 'Agent Speed'
     $ExeName = 'AgentSpeed.exe'
     $InstallDir = Join-Path $env:LOCALAPPDATA 'Programs\AgentSpeed'

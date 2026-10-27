@@ -97,7 +97,7 @@ struct SpeedReferences: Sendable {
 
 /// The live cost rate of a source, an agent or everything (METRICS 9.5): micro-USD per second, and the live output
 /// (tok/s) that carries a known cost. Both are additive over sources.
-public struct LiveCost: Equatable, Sendable {
+public struct LiveCost: Codable, Equatable, Sendable {
     public var microUsdPerSecond: Double
     public var knownOutput: Double
 

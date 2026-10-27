@@ -28,6 +28,11 @@ fi
 command -v dotnet >/dev/null 2>&1 || { echo "error: the .NET 10 SDK (dotnet) is required" >&2; exit 1; }
 command -v zip >/dev/null 2>&1 || { echo "error: zip is required" >&2; exit 1; }
 
+if [[ "${AGENT_SPEED_PREBUILT_COLLECTORS:-0}" != 1 ]]; then
+  "$ROOT/scripts/publish-collector.sh"
+fi
+python3 "$ROOT/scripts/package-collectors.py"
+
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/agentspeed-publish.XXXXXX")"
 cleanup() { rm -rf "$WORK"; }
 trap cleanup EXIT
@@ -81,6 +86,7 @@ for ARCH in x64 arm64; do
     -p:Version="$FILE_VERSION" \
     -p:InformationalVersion="$VERSION" \
     -p:ContinuousIntegrationBuild=true \
+    -p:CollectorDir="$DIST/collectors" \
     ${HELPER_ARGS[@]+"${HELPER_ARGS[@]}"} \
     -nologo
 

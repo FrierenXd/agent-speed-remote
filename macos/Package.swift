@@ -23,7 +23,8 @@ let package = Package(
         .target(
             name: "AgentSpeedCore",
             dependencies: ["CZstd"],
-            path: "Sources/AgentSpeedCore"
+            path: "Sources/AgentSpeedCore",
+            resources: [.copy("Remote/DeploymentScripts")]
         ),
         .target(
             name: "AgentSpeedHero",

@@ -126,7 +126,7 @@ internal sealed class SpeedEngine
         }
     }
 
-    public EngineFrame Compute(long nowMs, long todayStartMs, bool observeLive)
+    public EngineFrame Compute(long nowMs, long todayStartMs, bool observeLive, bool captureSourceHistory = false)
     {
         if (todayStartMs != _today.StartMs)
         {
@@ -291,6 +291,9 @@ internal sealed class SpeedEngine
         {
             LiveCost = liveCost,
             SourceLiveCost = sourceLiveCost,
+            SourceHistory = captureSourceHistory ? valid.GroupBy(s => s.Response.Source).ToDictionary(g => g.Key,
+                g => (IReadOnlyList<HistoryPoint>)BuildHistory(nowMs, g.ToList(), []))
+                : new Dictionary<SourceKind, IReadOnlyList<HistoryPoint>>(),
             TodayCost = _today.Cost,
             TodayModes = _today.Modes,
             SourceTodayCost = sourceTodayCost,

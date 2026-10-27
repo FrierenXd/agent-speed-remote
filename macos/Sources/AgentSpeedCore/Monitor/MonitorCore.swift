@@ -21,6 +21,7 @@ final class MonitorCore: @unchecked Sendable {
     private let wholeFileQueue = DispatchQueue(label: "app.agentspeed.monitor.whole-file", qos: .utility)
     /// Runs before each whole-file read on its queue; tests use it to make a read slow.
     private let wholeFileReadHook: (@Sendable (String) -> Void)?
+    let captureSourceHistory = OSAllocatedUnfairLock(initialState: false)
     private let cancelled = OSAllocatedUnfairLock(initialState: false)
     /// Source sets whose measured peak each snapshot reports (METRICS 6.8).
     private let subsets: OSAllocatedUnfairLock<Set<SourceSet>>
@@ -211,7 +212,8 @@ final class MonitorCore: @unchecked Sendable {
         let todayStartMs = Self.todayStartMs(for: now)
         let requested = subsets.withLock { $0 }
         let (output, events) = session.advance(
-            nowMs: Clock.milliseconds(now), todayStartMs: todayStartMs, emitsEvents: true, subsets: requested
+            nowMs: Clock.milliseconds(now), todayStartMs: todayStartMs, emitsEvents: true, subsets: requested,
+            captureSourceHistory: captureSourceHistory.withLock { $0 }
         )
         let context = SnapshotContext(session: session, todayStartMs: todayStartMs)
         mailbox.post(SnapshotBuilder.running(output, context: context), events: events)

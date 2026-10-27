@@ -30,6 +30,14 @@
     <Using Include="System.IO" />
   </ItemGroup>
 
+  <!-- All target architectures are needed: the SSH host need not match the desktop. -->
+  <PropertyGroup Condition="'$(CollectorDir)' == '' and Exists('$(MSBuildThisFileDirectory)../../../dist/collectors/SHA256SUMS.txt')">
+    <CollectorDir>$(MSBuildThisFileDirectory)../../../dist/collectors</CollectorDir>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(CollectorDir)' != ''">
+    <EmbeddedResource Include="$(CollectorDir)/AgentSpeed-Collector-*.tar.gz;$(CollectorDir)/SHA256SUMS.txt" LogicalName="AgentSpeed.Collectors.%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="AgentSpeed.Windows.Tests" />
     <InternalsVisibleTo Include="AgentSpeed.ProfileHarness" />

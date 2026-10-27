@@ -210,6 +210,7 @@ internal sealed class SettingsViewModel : ObservableObject
 
     /// <summary>Settings → Cost (DESIGN 9) and the taskbar page's live value unit.</summary>
     public CostPaneViewModel Cost { get; }
+    public RemotePaneViewModel? Remote { get; set; }
 
     /// <summary>Settings → 網路流量 (DESIGN 10) and the taskbar page's traffic block; set by the app.</summary>
     public TrafficPaneViewModel? Traffic
@@ -672,6 +673,7 @@ internal sealed class SettingsViewModel : ObservableObject
 
     public void UpdateLive(SpeedSnapshot snapshot, TaskbarPresence presence)
     {
+        Remote?.RefreshStatus();
         _snapshot = snapshot;
         Orbs?.UpdateLive();
         Cost.UpdateLive(snapshot);

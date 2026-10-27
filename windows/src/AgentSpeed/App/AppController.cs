@@ -51,6 +51,9 @@ internal sealed partial class AppController : IAppCommands, IOrbHost, IDisposabl
     private Traffic.TrafficService _traffic = null!;
     private TaskbarState? _lastTaskbarState;
     private SpeedHub _hub = null!;
+    private SpeedHub _localHub = null!;
+    private HistoryHub _localHistoryHub = null!;
+    private Core.Remote.RemoteMonitor? _remote;
     private HistoryHub _historyHub = null!;
     private HistoryController? _history;
     private HistoryService? _historyService;
@@ -133,12 +136,18 @@ internal sealed partial class AppController : IAppCommands, IOrbHost, IDisposabl
 
         _hub = new SpeedHub(new DispatcherSynchronizationContext(_ui));
         _historyHub = new HistoryHub(new DispatcherSynchronizationContext(_ui));
+        _localHub = new SpeedHub(new DispatcherSynchronizationContext(_ui));
+        _localHistoryHub = new HistoryHub(new DispatcherSynchronizationContext(_ui));
+        _remote = new Core.Remote.RemoteMonitor(_localHub, _localHistoryHub, _hub, _historyHub,
+            Path.Combine(Path.GetDirectoryName(HistoryService.DefaultStorePath)!, "remote"));
+        _remote.Update(Settings.Remote, Settings.NetworkEnabled, Settings.ToMonitorConfiguration().EnabledSources);
         _history = new HistoryController(_historyHub, _settings, _theme, _loc, _cost.Display) { Traffic = _traffic.Hub };
-        _hub.SnapshotChanged += (_, snapshot) =>
+        _localHub.SnapshotChanged += (_, snapshot) =>
         {
             if (!_hub.IsPreviewing)
             {
                 _historyService?.ObserveLive(snapshot);
+                _traffic.UpdateAgents(snapshot.Agents);
             }
         };
         CreateReporting();
@@ -382,6 +391,7 @@ internal sealed partial class AppController : IAppCommands, IOrbHost, IDisposabl
             _settingsModel ??= new SettingsViewModel(_settings, _preview, _loc, initial => SettingsWindow.PickFolder(_settingsWindow, initial),
                 _updates, OpenUpdate, () => OpenHistory(), ConfirmClearHistory, ClearHistory, _cost) { TitleService = _titles };
             _settingsModel.Report ??= CreateReportPane();
+            _settingsModel.Remote ??= new Settings.RemotePaneViewModel(_settings, _loc, () => _remote?.Statuses);
             _settingsModel.Traffic ??= new TrafficPaneViewModel(_settings, _traffic, _traffic.Helper, _loc,
                 () => _settingsWindow is { } window ? new System.Windows.Interop.WindowInteropHelper(window).Handle : 0,
                 ConfirmRemoveHelper);
@@ -476,6 +486,7 @@ internal sealed partial class AppController : IAppCommands, IOrbHost, IDisposabl
         Try(() => _pinnedSpeeds?.Dispose());
         Try(() => _heroTour?.Dispose());
         Try(() => _monitor?.Dispose());
+        Try(() => _remote?.Dispose());
         Try(() => _taskbar?.Dispose());
         Try(() => _tray?.Dispose());
         Try(() => _dashboardTimer?.Stop());
@@ -513,7 +524,10 @@ internal sealed partial class AppController : IAppCommands, IOrbHost, IDisposabl
 
         try
         {
-            _monitor = new LiveMonitor(_hub, Settings.ToMonitorConfiguration(), _cost.Book);
+            _monitor = new LiveMonitor(_localHub, Settings.ToMonitorConfiguration(), _cost.Book)
+                { CaptureSourceHistory = Settings.Remote.Hosts.Length > 0 };
+            _monitor.SetSubsets(Settings.Orbs.Orbs.Where(o => o.Sources.Set.HasValue).Select(o => o.Sources.Set!.Value).ToArray());
+            _remote?.SetSubsets(_monitor.Subsets);
             _monitor.Start();
         }
         catch (Exception ex)
@@ -539,7 +553,7 @@ internal sealed partial class AppController : IAppCommands, IOrbHost, IDisposabl
         _orbs?.Update(snapshot);
         if (!_speed.IsPreviewing)
         {
-            _traffic.UpdateAgents(snapshot.Agents);
+            _traffic.UpdateAgents(_localHub.Snapshot.Agents);
         }
 
         if (_dashboard is { IsShown: true } dashboard)
@@ -986,13 +1000,13 @@ internal sealed partial class AppController : IAppCommands, IOrbHost, IDisposabl
         _historyStarted = true;
         try
         {
-            _historyService = new HistoryService(_historyHub, Settings.ToMonitorConfiguration(), pricing: _cost.Book);
+            _historyService = new HistoryService(_localHistoryHub, Settings.ToMonitorConfiguration(), pricing: _cost.Book);
             _historyService.Start();
         }
         catch (Exception ex)
         {
             AppLog.Error("The daily history analysis failed to start.", ex);
-            _historyHub.Publish(HistoryState.Failed(ex.GetType().Name));
+            _localHistoryHub.Publish(HistoryState.Failed(ex.GetType().Name));
         }
     }
 
@@ -1029,6 +1043,13 @@ internal sealed partial class AppController : IAppCommands, IOrbHost, IDisposabl
         _updates.OnSettingsChanged(previous, current);
         _cost.OnSettingsChanged(previous, current);
         _traffic.OnSettingsChanged(previous, current);
+        _remote?.Update(current.Remote, current.NetworkEnabled, current.ToMonitorConfiguration().EnabledSources);
+        if (_monitor is not null)
+        {
+            _monitor.CaptureSourceHistory = current.Remote.Hosts.Length > 0;
+            _monitor.SetSubsets(current.Orbs.Orbs.Where(o => o.Sources.Set.HasValue).Select(o => o.Sources.Set!.Value).ToArray());
+            _remote?.SetSubsets(_monitor.Subsets);
+        }
         if (previous.Traffic.IncludeTools != current.Traffic.IncludeTools || previous.EnabledSourceSet() != current.EnabledSourceSet())
         {
             _history?.OnTrafficSettingsChanged();

@@ -2,7 +2,7 @@ import Foundation
 import os
 
 /// Cost of today's or a day's responses (METRICS 9.6, 9.7): Σ known costs and the responses without a known price.
-public struct CostTally: Equatable, Hashable, Sendable {
+public struct CostTally: Codable, Equatable, Hashable, Sendable {
     public var costMicroUsd: Int64
     public var unpricedRequests: Int
 

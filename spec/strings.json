@@ -4967,5 +4967,179 @@
     "zh-Hant": "裝置管理",
     "zh-Hans": "设备管理",
     "ja": "デバイス管理"
+  },
+  "remote.title": {
+    "zh-Hant": "遠端主機",
+    "zh-Hans": "远程主机",
+    "en": "Remote Hosts",
+    "ja": "リモートホスト"
+  },
+  "remote.view": {
+    "zh-Hant": "統計範圍",
+    "zh-Hans": "统计范围",
+    "en": "Host View",
+    "ja": "表示するホスト"
+  },
+  "remote.local": {
+    "zh-Hant": "僅本機",
+    "zh-Hans": "仅本地",
+    "en": "Local Only",
+    "ja": "このコンピュータのみ"
+  },
+  "remote.all": {
+    "zh-Hant": "全部主機",
+    "zh-Hans": "全部主机",
+    "en": "All Hosts",
+    "ja": "すべてのホスト"
+  },
+  "remote.name": {
+    "zh-Hant": "顯示名稱",
+    "zh-Hans": "显示名称",
+    "en": "Display Name",
+    "ja": "表示名"
+  },
+  "remote.destination": {
+    "zh-Hant": "SSH 別名或 user@host",
+    "zh-Hans": "SSH 别名或 user@host",
+    "en": "SSH Alias or user@host",
+    "ja": "SSH エイリアス / user@host"
+  },
+  "remote.executable": {
+    "zh-Hant": "遠端採集器絕對路徑或命令",
+    "zh-Hans": "远端采集器绝对路径或命令",
+    "en": "Remote Collector Path or Command",
+    "ja": "リモートコレクターのパス / コマンド"
+  },
+  "remote.shell": {
+    "zh-Hant": "遠端 Shell",
+    "zh-Hans": "远端 Shell",
+    "en": "Remote Shell",
+    "ja": "リモートシェル"
+  },
+  "remote.enabled": {
+    "zh-Hant": "啟用連線",
+    "zh-Hans": "启用连接",
+    "en": "Enable Connection",
+    "ja": "接続を有効にする"
+  },
+  "remote.add": {
+    "zh-Hant": "新增主機",
+    "zh-Hans": "添加主机",
+    "en": "Add Host",
+    "ja": "ホストを追加"
+  },
+  "remote.remove": {
+    "zh-Hant": "移除",
+    "zh-Hans": "移除",
+    "en": "Remove",
+    "ja": "削除"
+  },
+  "remote.apply": {
+    "zh-Hant": "套用主機設定",
+    "zh-Hans": "应用主机设置",
+    "en": "Apply Host Settings",
+    "ja": "ホスト設定を適用"
+  },
+  "remote.invalid": {
+    "zh-Hant": "請填寫有效且不重複的主機名稱、SSH 目的地與採集器路徑（最多 16 台）。",
+    "zh-Hans": "请填写有效且不重复的主机名称、SSH 目标与采集器路径（最多 16 台）。",
+    "en": "Enter valid, distinct SSH destinations, display names and collector paths (up to 16 hosts).",
+    "ja": "有効な表示名、重複しない SSH 接続先、コレクターのパスを入力してください（最大16台）。"
+  },
+  "remote.hint": {
+    "zh-Hant": "選用功能：透過系統 SSH 讀取遠端統計，不傳送對話或專案路徑。採集器可自動部署；請先在終端核對主機指紋並設定金鑰登入。SSH config 支援跳板機與連接埠。網路總開關會停止連線；網路流量與排行榜上報仍僅計本機。",
+    "zh-Hans": "可选功能：通过系统 SSH 读取远程统计，不传输对话或项目路径。采集器可自动部署；请先在终端核对主机指纹并配置密钥登录。SSH config 支持跳板机和端口。网络总开关会停止连接；网络流量与排行榜上报仍仅计本机。",
+    "en": "Optional: read remote statistics over system SSH, without conversations or project paths. The collector can be auto-deployed; first verify host keys and key-based login in a terminal. Use SSH config for ports and jump hosts. The network master switch stops connections; traffic and leaderboard reporting remain local-only.",
+    "ja": "任意機能：システム SSH 経由で統計のみを取得し、会話やプロジェクトのパスは転送しません。コレクターは自動配置できます。事前に端末でホスト鍵と鍵認証を確認してください。ポートや踏み台は SSH config で設定します。通信の全体スイッチで停止でき、通信量とランキング送信はローカルのみです。"
+  },
+  "remote.status.connecting": {
+    "zh-Hant": "連線中",
+    "zh-Hans": "连接中",
+    "en": "Connecting",
+    "ja": "接続中"
+  },
+  "remote.status.connected": {
+    "zh-Hant": "已連線",
+    "zh-Hans": "已连接",
+    "en": "Connected",
+    "ja": "接続済み"
+  },
+  "remote.status.disconnected": {
+    "zh-Hant": "已斷線；自動重試（請檢查 SSH 與採集器）",
+    "zh-Hans": "已断线；自动重试（请检查 SSH 与采集器）",
+    "en": "Disconnected; retrying (check SSH and collector)",
+    "ja": "切断、再試行中（SSH とコレクターを確認）"
+  },
+  "remote.status.protocolError": {
+    "zh-Hant": "協定不相容；請更新採集器",
+    "zh-Hans": "协议不兼容；请更新采集器",
+    "en": "Incompatible protocol; update the collector",
+    "ja": "プロトコル非互換、コレクターを更新してください"
+  },
+  "remote.status.stale": {
+    "zh-Hant": "資料過期；即時速度已歸零",
+    "zh-Hans": "数据过期；实时速度已归零",
+    "en": "Stale; live rates cleared",
+    "ja": "データが古いためライブ速度をクリアしました"
+  },
+  "remote.status.disabled": {
+    "zh-Hant": "連線已停用",
+    "zh-Hans": "连接已停用",
+    "en": "Connection Disabled",
+    "ja": "接続無効"
+  },
+  "remote.deploy.action": {
+    "zh-Hant": "自動部署並連線 / 更新",
+    "zh-Hans": "自动部署并连接 / 更新",
+    "en": "Auto-deploy & connect / update",
+    "ja": "自動配置して接続 / 更新"
+  },
+  "remote.deploy.hint": {
+    "zh-Hant": "填寫 SSH 目標後即可自動識別平台、上傳內建採集器並連線。不需手動上傳或管理員權限；仍須先信任 SSH 主機指紋。",
+    "zh-Hans": "填写 SSH 目标后即可自动识别平台、上传内置采集器并连接。无需手动上传或管理员权限；仍须先信任 SSH 主机指纹。",
+    "en": "Enter an SSH destination to detect its platform, upload the bundled collector and connect. No manual upload or administrator access; SSH host trust and key authentication must already be configured.",
+    "ja": "SSH 接続先を入力すると、環境を判別し、同梱コレクターを転送して接続します。手動転送や管理者権限は不要です。SSH ホストの信頼と鍵認証は事前に設定してください。"
+  },
+  "remote.deploy.cancel": {
+    "zh-Hant": "取消部署",
+    "zh-Hans": "取消部署",
+    "en": "Cancel deployment",
+    "ja": "配置をキャンセル"
+  },
+  "remote.deploy.probing": {
+    "zh-Hant": "正在識別遠端系統與架構…",
+    "zh-Hans": "正在识别远程系统与架构…",
+    "en": "Detecting remote OS and architecture…",
+    "ja": "リモート OS と CPU を検出中…"
+  },
+  "remote.deploy.uploading": {
+    "zh-Hant": "正在上傳、校驗並測試採集器…",
+    "zh-Hans": "正在上传、校验并测试采集器…",
+    "en": "Uploading, verifying and testing the collector…",
+    "ja": "コレクターを転送・検証・テスト中…"
+  },
+  "remote.deploy.done": {
+    "zh-Hant": "採集器已部署，正在連線。",
+    "zh-Hans": "采集器已部署，正在连接。",
+    "en": "Collector deployed. Connecting.",
+    "ja": "コレクターを配置しました。接続中。"
+  },
+  "remote.deploy.cancelled": {
+    "zh-Hant": "部署已取消，原有設定未變更。",
+    "zh-Hans": "部署已取消，原有设置未更改。",
+    "en": "Deployment cancelled; existing settings are unchanged.",
+    "ja": "配置をキャンセルしました。既存の設定は変更されていません。"
+  },
+  "remote.deploy.failed": {
+    "zh-Hant": "部署失敗，原有設定未變更。",
+    "zh-Hans": "部署失败，原有设置未更改。",
+    "en": "Deployment failed; existing settings are unchanged.",
+    "ja": "配置に失敗しました。既存の設定は変更されていません。"
+  },
+  "remote.deploy.networkOff": {
+    "zh-Hant": "請先開啟網路總開關，再部署採集器。",
+    "zh-Hans": "请先开启网络总开关，再部署采集器。",
+    "en": "Enable network access before deploying the collector.",
+    "ja": "配置する前にネットワークを有効にしてください。"
   }
 }

@@ -9,8 +9,8 @@ struct UpdateConfiguration: Sendable {
     static let assetName = "AgentSpeed-macOS.zip"
     static let checksumAssetName = "SHA256SUMS.txt"
     static let maxAssetSize: Int64 = 300 << 20
-    static let releaseFeedURL = URL(string: "https://api.github.com/repos/zoefix/agent-speed/releases/latest")!
-    static let releasesPageURL = URL(string: "https://github.com/zoefix/agent-speed/releases/latest")!
+    static let releaseFeedURL = URL(string: "https://api.github.com/repos/FrierenXd/agent-speed-remote/releases/latest")!
+    static let releasesPageURL = URL(string: "https://github.com/FrierenXd/agent-speed-remote/releases/latest")!
     /// Development hook: a feed URL that replaces the GitHub API and lifts the host allow-list. Only the local
     /// user can set it, by launching the executable with this variable.
     static let feedOverrideVariable = "AGENT_SPEED_UPDATE_FEED"

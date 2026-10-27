@@ -96,7 +96,7 @@ enum SnapshotBuilder {
                 configuredModes: info?.configuredModes ?? .empty
             )
         }
-        return SpeedSnapshot(
+        var snapshot = SpeedSnapshot(
             timestamp: date(output.nowMs),
             state: .running,
             live: output.live,
@@ -118,6 +118,8 @@ enum SnapshotBuilder {
             todayCost: output.todayCost,
             report: output.report
         )
+        snapshot.sourceHistory = output.sourceHistory
+        return snapshot
     }
 
     /// Models with unpriced responses, most first, then by name.

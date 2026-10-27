@@ -55,6 +55,7 @@ enum ReportHarness {
             agents: [.claudeCode: ReportAgentCounts(generating: busy ? 1 : 0, active: 1)],
             generatingModels: busy ? [ReportModelKey(modelId: "claude-opus-5-5", source: .claudeCode): 1] : [:],
             counters: counters)
+        model.localStore.publishLive(snapshot)
         model.store.publishLive(snapshot)
     }
 

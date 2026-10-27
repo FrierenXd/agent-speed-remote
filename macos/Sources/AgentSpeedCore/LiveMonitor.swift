@@ -4,6 +4,10 @@ import Foundation
 @MainActor
 public final class LiveMonitor {
     public private(set) var configuration: MonitorConfiguration
+    /// Captures measured per-source buckets for time-aligned multi-host subset peaks.
+    public var captureSourceHistory = false {
+        didSet { core?.captureSourceHistory.withLock { $0 = captureSourceHistory } }
+    }
     /// Source sets whose measured peak each snapshot reports in `subsetPeaks` (METRICS 6.8).
     public private(set) var subsets: Set<SourceSet> = []
     /// Prices every response (METRICS 9); nil leaves costs unknown.
@@ -29,6 +33,7 @@ public final class LiveMonitor {
         let core = MonitorCore(configuration: configuration, mailbox: mailbox, subsets: subsets, pricing: pricing)
         self.mailbox = mailbox
         self.core = core
+        core.captureSourceHistory.withLock { $0 = captureSourceHistory }
         core.start()
     }
 

@@ -42,8 +42,8 @@ public sealed class HistoryService : IDisposable
     private bool _disposed;
 
     /// <param name="pricing">Shared with the live engine (METRICS 9.7); null uses the bundled table.</param>
-    public HistoryService(HistoryHub hub, MonitorConfiguration configuration, string? storePath = null, PriceBook? pricing = null)
-        : this(hub, configuration, storePath, zone: null, options: null, pricing)
+    public HistoryService(HistoryHub hub, MonitorConfiguration configuration, string? storePath = null, PriceBook? pricing = null, TimeZoneInfo? timeZone = null)
+        : this(hub, configuration, storePath, zone: timeZone, options: null, pricing)
     {
     }
 

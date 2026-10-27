@@ -46,6 +46,21 @@ New-Item -ItemType Directory -Path $work | Out-Null
 New-Item -ItemType Directory -Path $dist -Force | Out-Null
 
 try {
+    # Linux/macOS collectors can be cross-published on Windows too; tar.exe ships with supported Windows versions.
+    foreach ($target in @('linux-x64', 'linux-arm64', 'osx-x64', 'osx-arm64', 'win-x64', 'win-arm64')) {
+        $archive = Join-Path $dist "AgentSpeed-Collector-$target.tar.gz"
+        if ($env:AGENT_SPEED_PREBUILT_COLLECTORS -ne '1') {
+            $collectorOut = Join-Path $work "collector-$target"
+            & dotnet publish (Join-Path $root 'windows/tools/AgentSpeed.Collector') -c Release -r $target `
+                --self-contained true -p:PublishTrimmed=false -p:PublishSingleFile=false -o $collectorOut
+            if ($LASTEXITCODE -ne 0) { throw "Collector publish failed for $target" }
+            & tar.exe -czf $archive -C $collectorOut .
+            if ($LASTEXITCODE -ne 0) { throw "Collector archive failed for $target" }
+        }
+    }
+    & python (Join-Path $root 'scripts/package-collectors.py')
+    if ($LASTEXITCODE -ne 0) { throw 'Collector packaging failed' }
+    $collectorDir = Join-Path $dist 'collectors'
     $helperArgs = @()
     if ($env:AGENT_SPEED_NO_HELPER -eq '1') {
         Write-Warning 'AGENT_SPEED_NO_HELPER=1: building without the traffic helper (no per-process traffic on Windows).'
@@ -97,6 +112,7 @@ try {
             "-p:Version=$fileVersion" `
             "-p:InformationalVersion=$Version" `
             -p:ContinuousIntegrationBuild=true `
+            "-p:CollectorDir=$collectorDir" `
             @helperArgs `
             -nologo
         if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed for $rid" }

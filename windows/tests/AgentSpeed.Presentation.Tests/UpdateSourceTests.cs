@@ -19,7 +19,7 @@ public class UpdateSourceTests
     {
         var source = UpdateSource.GitHub;
 
-        Assert.Equal("https://api.github.com/repos/zoefix/agent-speed/releases/latest", source.FeedUrl.AbsoluteUri);
+        Assert.Equal("https://api.github.com/repos/FrierenXd/agent-speed-remote/releases/latest", source.FeedUrl.AbsoluteUri);
         Assert.Equal(UpdateSource.GitHubFeedUrl, source.FeedUrl.OriginalString);
         Assert.False(source.IsOverride);
         Assert.True(UpdateSource.IsAllowedGitHubUrl(source.FeedUrl));

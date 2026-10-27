@@ -543,10 +543,11 @@ internal sealed partial class MonitorCore : IDisposable
 
     /// <param name="subsets">Source sets whose measured peak today the snapshot reports in <see cref="SpeedSnapshot.SubsetPeaks"/>.</param>
     public (SpeedSnapshot Snapshot, IReadOnlyList<SpeedEvent> Events) BuildSnapshot(
-        long nowMs, long todayStartMs, MonitorState state, bool observeLive, IReadOnlyCollection<SourceSet>? subsets = null)
+        long nowMs, long todayStartMs, MonitorState state, bool observeLive, IReadOnlyCollection<SourceSet>? subsets = null,
+        bool captureSourceHistory = false)
     {
         ResolveParents();
-        var frame = _engine.Compute(nowMs, todayStartMs, observeLive);
+        var frame = _engine.Compute(nowMs, todayStartMs, observeLive, captureSourceHistory);
         var agents = frame.Agents
             .Select(a => new AgentStatus(
                 a.Info.Id,
@@ -592,6 +593,7 @@ internal sealed partial class MonitorCore : IDisposable
             TodayCost = frame.TodayCost,
             Report = frame.Report,
             TodayModes = frame.TodayModes,
+            SourceHistory = frame.SourceHistory,
         };
         return (snapshot, frame.Events);
     }

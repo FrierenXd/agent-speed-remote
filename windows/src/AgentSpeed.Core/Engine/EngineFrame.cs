@@ -29,6 +29,8 @@ internal sealed record EngineFrame(
     int UnfinalizedToday)
 {
     public IReadOnlyList<ExecutionModeUsage> TodayModes { get; init; } = [];
+    public IReadOnlyDictionary<SourceKind, IReadOnlyList<HistoryPoint>> SourceHistory { get; init; } =
+        new Dictionary<SourceKind, IReadOnlyList<HistoryPoint>>();
 
     /// <summary>The live cost rate (METRICS 9.5) in total.</summary>
     public LiveCost LiveCost { get; init; }

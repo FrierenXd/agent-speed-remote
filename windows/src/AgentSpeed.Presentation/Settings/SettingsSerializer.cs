@@ -21,6 +21,13 @@ public static class SettingsSerializer
     public const int CurrentVersion = 2;
     public const int MaxFileBytes = 1024 * 1024;
 
+    private static Core.Remote.RemoteSettings ReadRemote(JsonElement root)
+    {
+        if (!root.TryGetProperty("remote", out var remote)) return Core.Remote.RemoteSettings.Default;
+        try { return Core.Remote.RemoteSettings.Parse(remote.GetRawText()); }
+        catch (JsonException) { return Core.Remote.RemoteSettings.Default; }
+    }
+
     public static string Serialize(AppSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
@@ -168,6 +175,8 @@ public static class SettingsSerializer
             w.WriteEndObject();
 
             ReportSettingsJson.Write(w, s.Report);
+            w.WritePropertyName("remote");
+            using (var remote = JsonDocument.Parse(s.Remote.ToJson())) remote.RootElement.WriteTo(w);
 
             w.WriteStartObject("updates");
             w.WriteBoolean("autoCheck", s.AutoCheckUpdates);
@@ -280,6 +289,7 @@ public static class SettingsSerializer
                 Bar = TrafficSettings.ParseBar(ReadString(traffic, "bar")),
             },
             Report = ReportSettingsJson.Read(report),
+            Remote = ReadRemote(root),
         };
 
         var fileVersion = ReadDouble(root, "version", 1);

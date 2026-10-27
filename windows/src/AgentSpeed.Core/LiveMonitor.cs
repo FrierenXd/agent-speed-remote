@@ -23,6 +23,7 @@ public sealed class LiveMonitor : IDisposable
     private const int MaxPendingPaths = 10_000;
 
     private readonly SpeedHub _hub;
+    private readonly TimeZoneInfo? _timeZone;
     private readonly object _gate = new();
     private readonly object _pendingGate = new();
     private readonly AutoResetEvent _wake = new(false);
@@ -38,15 +39,17 @@ public sealed class LiveMonitor : IDisposable
     private bool _disposed;
 
     /// <param name="pricing">Prices every response (METRICS 9); null leaves costs unknown.</param>
-    public LiveMonitor(SpeedHub hub, MonitorConfiguration? configuration = null, PriceBook? pricing = null)
+    public LiveMonitor(SpeedHub hub, MonitorConfiguration? configuration = null, PriceBook? pricing = null, TimeZoneInfo? timeZone = null)
     {
         ArgumentNullException.ThrowIfNull(hub);
         _hub = hub;
         _configuration = configuration ?? MonitorConfiguration.Default;
         Pricing = pricing;
+        _timeZone = timeZone;
     }
 
     public PriceBook? Pricing { get; }
+    public bool CaptureSourceHistory { get; set; }
 
     /// <summary>Runs on the pool thread before each background whole-file read (tests make reads slow with it).</summary>
     internal Action<string>? BeforeBackgroundRead { get; set; }
@@ -331,7 +334,7 @@ public sealed class LiveMonitor : IDisposable
 
     private void RunSession(MonitorConfiguration configuration, CancellationToken token)
     {
-        var zone = TimeZoneInfo.Local;
+        var zone = _timeZone ?? TimeZoneInfo.Local;
         using var core = new MonitorCore(
             configuration, SourceLocations.Resolve(configuration), LocalDay.StartMs(NowMs(), zone), pricing: Pricing, zone: zone);
         core.ReadWholeFilesInBackground = true;
@@ -406,7 +409,7 @@ public sealed class LiveMonitor : IDisposable
             if (elapsed >= nextZoneRefresh)
             {
                 TimeZoneInfo.ClearCachedData();
-                zone = TimeZoneInfo.Local;
+                zone = _timeZone ?? TimeZoneInfo.Local;
                 nextZoneRefresh = elapsed + TimeZoneRefreshInterval;
             }
 
@@ -461,7 +464,8 @@ public sealed class LiveMonitor : IDisposable
         IReadOnlyList<SpeedEvent> events;
         try
         {
-            (snapshot, events) = core.BuildSnapshot(now, LocalDay.StartMs(now, zone), state, observeLive, Volatile.Read(ref _subsets));
+            (snapshot, events) = core.BuildSnapshot(now, LocalDay.StartMs(now, zone), state, observeLive,
+                Volatile.Read(ref _subsets), CaptureSourceHistory);
         }
         catch (Exception e) when (e is not OperationCanceledException and not OutOfMemoryException)
         {

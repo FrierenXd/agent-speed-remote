@@ -32,6 +32,9 @@ protocol AppCommands: AnyObject {
 @Observable
 final class AppModel {
     let store: SpeedStore
+    let localStore = SpeedStore()
+    let localHistory = HistoryStore()
+    private(set) var remote: RemoteMonitor?
     /// Daily usage (METRICS 8) for the history window, filled by `HistoryService` (or previews).
     let history: HistoryStore
     let settings: AppSettings
@@ -97,7 +100,7 @@ final class AppModel {
         rates = ExchangeRateController(userAgent: userAgent)
         cost = CostDisplay(settings: settings, l10n: l10n, rates: rates, prices: prices)
         traffic = TrafficStore()
-        report = ReportController(settings: settings, store: store, traffic: traffic, priceBook: priceBook,
+        report = ReportController(settings: settings, store: localStore, traffic: traffic, priceBook: priceBook,
                                   appData: Self.appDataDirectory)
         gauge.redline = settings.redline
     }
@@ -170,13 +173,24 @@ final class AppModel {
         // Stored day bindings first, so the engine never re-binds a day that was priced before (METRICS 9.7).
         HistoryService.restorePricing(into: priceBook)
         activateNetwork()
+        let remote = RemoteMonitor(local: localStore, localHistory: localHistory, output: store, history: history,
+                                   cacheDirectory: Self.appDataDirectory.appendingPathComponent("remote", isDirectory: true))
+        self.remote = remote
+        loops.append(ObservationLoop { [weak self] in
+            guard let self else { return }
+            self.remote?.update(settings: self.settings.remote, networkEnabled: self.settings.networkEnabled,
+                                enabled: self.settings.enabledSources)
+            self.monitor?.captureSourceHistory = !self.settings.remote.hosts.isEmpty
+        })
         let traffic = TrafficController(model: self)
         trafficController = traffic
         trafficRetryHandler = { [weak traffic] in traffic?.retry() }
         traffic.start()
-        let monitor = LiveMonitor(store: store, configuration: settings.monitorConfiguration, pricing: priceBook)
+        let monitor = LiveMonitor(store: localStore, configuration: settings.monitorConfiguration, pricing: priceBook)
         self.monitor = monitor
         appliedConfiguration = settings.monitorConfiguration
+        monitor.captureSourceHistory = !settings.remote.hosts.isEmpty
+        remote.setSubsets(orbSubsets)
         monitor.setSubsets(orbSubsets)
         monitor.start()
         report.activate()
@@ -229,7 +243,7 @@ final class AppModel {
         guard historyService == nil, monitor != nil else { return }
         historyStartTimer?.invalidate()
         historyStartTimer = nil
-        let service = HistoryService(store: history, configuration: settings.monitorConfiguration, liveStore: store,
+        let service = HistoryService(store: localHistory, configuration: settings.monitorConfiguration, liveStore: localStore,
                                      pricing: priceBook)
         historyService = service
         service.start()
@@ -255,6 +269,7 @@ final class AppModel {
         guard sets != orbSubsets else { return }
         orbSubsets = sets
         monitor?.setSubsets(sets)
+        remote?.setSubsets(sets)
     }
 
     func shutdown() {
@@ -266,6 +281,7 @@ final class AppModel {
         historyStartTimer?.invalidate()
         historyService?.stop()
         monitor?.stop()
+        remote?.stop()
         loops.forEach { $0.cancel() }
         loops.removeAll()
     }

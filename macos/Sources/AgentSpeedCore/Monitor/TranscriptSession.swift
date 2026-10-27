@@ -573,14 +573,15 @@ final class TranscriptSession {
         nowMs: Int64,
         todayStartMs: Int64,
         emitsEvents: Bool,
-        subsets: Set<SourceSet> = []
+        subsets: Set<SourceSet> = [],
+        captureSourceHistory: Bool = false
     ) -> (output: EngineOutput, events: [SpeedEvent]) {
         if parentLinksAreStale {
             parentLinks = AgentParents.resolve(Array(parentMembers.values), direct: opencodeLinks.merging(zcodeLinks) { first, _ in first })
             engine.setParents(parentLinks)
             parentLinksAreStale = false
         }
-        let output = engine.advance(nowMs: nowMs, todayStartMs: todayStartMs, emitsEvents: emitsEvents, subsets: subsets)
+        let output = engine.advance(nowMs: nowMs, todayStartMs: todayStartMs, emitsEvents: emitsEvents, subsets: subsets, captureSourceHistory: captureSourceHistory)
         let events = pendingEvents + output.events
         pendingEvents.removeAll()
         return (output, events)

@@ -90,6 +90,11 @@ done
 [[ -f "$PLIST_TEMPLATE" ]] || die "Info.plist template not found at $PLIST_TEMPLATE."
 [[ -f "$ICON_FILE" ]] || die "App icon not found at $ICON_FILE." "Generate it with: assets/icon/generate.sh"
 
+if [[ "${AGENT_SPEED_PREBUILT_COLLECTORS:-0}" != 1 ]]; then
+    "$REPO_ROOT/scripts/publish-collector.sh"
+fi
+python3 "$REPO_ROOT/scripts/package-collectors.py" || die "Collector packaging failed."
+
 mkdir -p "$OUTPUT_DIR"
 OUTPUT_DIR="$(cd -- "$OUTPUT_DIR" && pwd -P)"
 APP_DIR="$OUTPUT_DIR/$APP_NAME.app"
@@ -160,6 +165,8 @@ plutil -lint -s "$APP_DIR/Contents/Info.plist" || die "The generated Info.plist 
 
 printf 'APPL????' > "$APP_DIR/Contents/PkgInfo"
 cp "$ICON_FILE" "$APP_DIR/Contents/Resources/AgentSpeed.icns"
+cp -R "$REPO_ROOT/dist/collectors" "$APP_DIR/Contents/Resources/Collectors"
+cp -R "$MACOS_DIR/Sources/AgentSpeedCore/Remote/DeploymentScripts" "$APP_DIR/Contents/Resources/DeploymentScripts"
 info "Contents/MacOS/$EXECUTABLE, Info.plist, PkgInfo, Resources/AgentSpeed.icns"
 
 step "Signing (ad hoc)"

@@ -4,8 +4,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:loc="clr-namespace:AgentSpeed.Localization"
              xmlns:controls="clr-namespace:AgentSpeed.Controls"
+             xmlns:pages="clr-namespace:AgentSpeed.Settings.Pages"
              Focusable="False">
     <StackPanel>
+        <pages:RemoteHostsSection DataContext="{Binding Remote}" />
         <ItemsControl ItemsSource="{Binding Sources}" Focusable="False">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>

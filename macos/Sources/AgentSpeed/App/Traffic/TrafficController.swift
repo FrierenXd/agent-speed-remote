@@ -33,7 +33,7 @@ final class TrafficController {
         loops.append(ObservationLoop { [weak self] in
             guard let self else { return }
             // The effects preview publishes made-up agents; the monitor only ever sees the real ones.
-            let snapshot = self.model.snapshot
+            let snapshot = self.model.localStore.snapshot
             guard !self.model.store.isPreviewing else { return }
             self.monitor.update(agents: snapshot.agents)
         })

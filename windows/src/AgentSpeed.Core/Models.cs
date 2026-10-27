@@ -192,6 +192,8 @@ public sealed record SpeedSnapshot(
     /// <summary>Live reporting's agent counts and cumulative ledger (METRICS 11.2, 11.4).</summary>
     public Reporting.ReportLiveFacts Report { get; init; } = Reporting.ReportLiveFacts.Empty;
     public IReadOnlyList<ExecutionModeUsage> TodayModes { get; init; } = [];
+    public IReadOnlyDictionary<SourceKind, IReadOnlyList<HistoryPoint>> SourceHistory { get; init; } =
+        new Dictionary<SourceKind, IReadOnlyList<HistoryPoint>>();
 
     public static SpeedSnapshot Empty { get; } = new(
         DateTimeOffset.MinValue,

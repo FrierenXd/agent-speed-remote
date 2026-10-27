@@ -100,7 +100,7 @@ struct SpeedEngine: Sendable {
     // MARK: - Computation
 
     /// `subsets` are the source sets whose measured peak today is reported in `subsetPeaks` (METRICS 6.8).
-    mutating func advance(nowMs: Int64, todayStartMs: Int64, emitsEvents: Bool, subsets: Set<SourceSet> = []) -> EngineOutput {
+    mutating func advance(nowMs: Int64, todayStartMs: Int64, emitsEvents: Bool, subsets: Set<SourceSet> = [], captureSourceHistory: Bool = false) -> EngineOutput {
         rollOverIfNeeded(todayStartMs: todayStartMs)
         prune(nowMs: nowMs, todayStartMs: todayStartMs)
         repriceIfNeeded()
@@ -154,6 +154,9 @@ struct SpeedEngine: Sendable {
             sourceLiveCost: window.costBySource,
             agents: agentList(nowMs: nowMs, window: window, references: references),
             history: history,
+            sourceHistory: captureSourceHistory ? Dictionary(grouping: measured, by: { $0.record.source }).mapValues {
+                Self.history(nowMs: nowMs, measured: $0, estimates: [])
+            } : [:],
             today: ledger?.totals ?? TokenTotals(),
             todayBySource: ledger?.bySource ?? [:],
             averageToday: ledger?.average,

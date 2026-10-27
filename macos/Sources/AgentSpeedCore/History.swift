@@ -107,6 +107,7 @@ public final class HistoryStore {
     /// Called with whether the run shows its progress (`.analyzing`) regardless of its size.
     @ObservationIgnored public var refreshHandler: (@MainActor (_ showsProgress: Bool) -> Void)?
     @ObservationIgnored public var clearHandler: (@MainActor () -> Void)?
+    @ObservationIgnored private var listeners: [UUID: @MainActor () -> Void] = [:]
 
     public init() {}
 
@@ -115,7 +116,14 @@ public final class HistoryStore {
         if let days {
             self.days = days
         }
+        for listener in listeners.values { listener() }
     }
+
+    @discardableResult
+    public func addListener(_ listener: @escaping @MainActor () -> Void) -> UUID {
+        let id = UUID(); listeners[id] = listener; return id
+    }
+    public func removeListener(_ id: UUID) { listeners[id] = nil }
 
     /// Analyses new and changed logs now; a quiet refresh (`showsProgress: false`) only reports progress for a large
     /// run, which keeps a live view of today calm.

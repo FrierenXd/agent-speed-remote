@@ -62,7 +62,7 @@ public struct TokenTotals: Codable, Equatable, Sendable {
     public static let zero = TokenTotals()
 }
 
-public struct Rate: Equatable, Sendable {
+public struct Rate: Codable, Equatable, Sendable {
     public var output: Double
     public var total: Double
 
@@ -264,6 +264,7 @@ public struct SpeedSnapshot: Equatable, Sendable {
     public var toolsCount: Int
     /// Last 300 one-second buckets, oldest first.
     public var history: [HistoryPoint]
+    public var sourceHistory: [SourceKind: [HistoryPoint]] = [:]
     public var lastResponse: ResponseSummary?
     public var warnings: [MonitorWarning]
     /// Today's measured output peak of every source set requested with `LiveMonitor.setSubsets` (METRICS 6.8): the

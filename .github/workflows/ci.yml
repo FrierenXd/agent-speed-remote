@@ -32,11 +32,37 @@ jobs:
       - name: Lint installer
         run: shellcheck install.sh
 
+  collector:
+    name: Remote collector (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet test windows/tests/AgentSpeed.Core.Tests -c Release --filter FullyQualifiedName~Remote
+      - run: ./scripts/publish-collector.sh
+      - run: python3 scripts/package-collectors.py
+      - name: Exercise SSH stream, reconnection and host verification
+        run: |
+          sudo apt-get update && sudo apt-get install -y openssh-server
+          sudo python3 scripts/test-remote-ssh.py --dotnet "$(command -v dotnet)"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: AgentSpeed-Collectors
+          path: dist/AgentSpeed-Collector-*.tar.gz
+          if-no-files-found: error
+
   macos:
     name: macOS
+    needs: collector
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v8
+        with:
+          name: AgentSpeed-Collectors
+          path: dist
       - name: Select newest Xcode
         run: |
           xcode="$(ls -d /Applications/Xcode*.app | grep -viE 'beta|_rc|release_candidate' | sort -V | tail -1)"
@@ -51,6 +77,8 @@ jobs:
             exit 1
           }
       - name: Build app bundle
+        env:
+          AGENT_SPEED_PREBUILT_COLLECTORS: '1'
         run: macos/scripts/build-app.sh
       - uses: actions/upload-artifact@v7
         with:
@@ -60,9 +88,14 @@ jobs:
 
   windows:
     name: Windows
+    needs: collector
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v8
+        with:
+          name: AgentSpeed-Collectors
+          path: dist
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
@@ -90,6 +123,8 @@ jobs:
       - name: Test traffic helper
         run: dotnet test windows/tests/AgentSpeed.TrafficHelper.Tests -c Release
       - name: Publish
+        env:
+          AGENT_SPEED_PREBUILT_COLLECTORS: '1'
         shell: pwsh
         run: ./windows/scripts/publish.ps1
       - uses: actions/upload-artifact@v7

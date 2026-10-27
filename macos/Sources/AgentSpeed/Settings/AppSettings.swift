@@ -86,6 +86,9 @@ final class AppSettings {
 
     /// NETWORK 1: off, nothing is ever requested (updates, prices, rates).
     var networkEnabled: Bool { didSet { store(networkEnabled, .networkEnabled) } }
+    var remote: RemoteSettings {
+        didSet { if remote.isValid, let data = try? JSONEncoder().encode(remote) { store(data, .remote) } }
+    }
     /// NETWORK 3: sync the price table daily.
     var syncPrices: Bool { didSet { store(syncPrices, .syncPrices) } }
     /// The display currency (DESIGN 9): an ISO 4217 code of `currencies.json`.
@@ -162,6 +165,9 @@ final class AppSettings {
         grokBuildRoot = Self.url(defaults.string(forKey: Key.grokBuildRoot.rawValue))
         autoCheckUpdates = defaults.object(forKey: Key.autoCheckUpdates.rawValue) as? Bool ?? true
         networkEnabled = defaults.object(forKey: Key.networkEnabled.rawValue) as? Bool ?? true
+        let remoteData = defaults.data(forKey: Key.remote.rawValue)
+        let savedRemote = remoteData.flatMap { try? JSONDecoder().decode(RemoteSettings.self, from: $0) }
+        remote = savedRemote?.isValid == true ? savedRemote! : RemoteSettings()
         syncPrices = defaults.object(forKey: Key.syncPrices.rawValue) as? Bool ?? true
         currency = CurrencyTable.bundled.currencyOrUSD(defaults.string(forKey: Key.currency.rawValue) ?? "").code
         liveUnit = LiveUnit(rawValue: defaults.string(forKey: Key.liveUnit.rawValue) ?? "") ?? .tokens
@@ -258,7 +264,7 @@ final class AppSettings {
         case codexRoot, claudeRoot, dshRoot, opencodeRoot, geminiRoot, ompRoot, antigravityRoot, workbuddyRoot, workbuddyAiRoot
         case zcodeRoot, kimiRoot, grokBuildRoot
         case autoCheckUpdates
-        case networkEnabled, syncPrices, currency, liveUnit, subscriptionSources, includeSubscriptions
+        case networkEnabled, remote, syncPrices, currency, liveUnit, subscriptionSources, includeSubscriptions
         case heroLastTitle
     }
 }

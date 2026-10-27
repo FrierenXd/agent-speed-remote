@@ -15,7 +15,7 @@
 
 set -eu
 
-REPO="zoefix/agent-speed"
+REPO="FrierenXd/agent-speed-remote"
 APP_NAME="Agent Speed"
 BUNDLE_ID="io.github.zoefix.agentspeed"
 ASSET="AgentSpeed-macOS.zip"

@@ -18,5 +18,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="AgentSpeed.Core.Tests" />
     <InternalsVisibleTo Include="AgentSpeed.Probe" />
+    <InternalsVisibleTo Include="agentspeed-collector" />
+    <EmbeddedResource Include="../../../macos/Sources/AgentSpeedCore/Remote/DeploymentScripts/*" LogicalName="AgentSpeed.Deploy.%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

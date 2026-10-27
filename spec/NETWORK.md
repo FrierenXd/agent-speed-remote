@@ -4,7 +4,8 @@ Agent Speed reads local logs and works fully offline. It makes exactly three kin
 optional, all HTTPS `GET`, none of them carrying anything about the user: the update check (`spec/UPDATES.md`), the
 daily price-table sync (section 3) and the daily exchange rates (section 4). A fourth kind exists only when the user
 turns it on: live reporting (section 6, `spec/REPORTING.md`), the one feature that sends data about the user's
-activity, to a service the user chose. Both platforms implement exactly this behaviour; anything not listed here is
+activity, to a service the user chose. Remote monitoring is a fifth, separately opt-in connection type: SSH to
+user-configured hosts (section 7), not HTTPS. Both platforms implement exactly this behaviour; anything not listed here is
 never requested.
 
 ## 1. Common rules
@@ -35,6 +36,7 @@ never requested.
 | Update check (UPDATES) | `api.github.com`; downloads `github.com`, `objects.githubusercontent.com`, `release-assets.githubusercontent.com` | 30 s after launch, every 6 h, manual | 300 MiB (assets) |
 | Price table (3) | `raw.githubusercontent.com`, `cdn.jsdelivr.net` | 60 s after launch, then daily, manual | 1 MiB |
 | Exchange rates (4) | `open.er-api.com`, `cdn.jsdelivr.net`, `latest.currency-api.pages.dev`, `api.frankfurter.dev` | only while a non-USD currency is selected: 30 s after launch or on selection, then daily, manual | 256 KiB |
+| Remote monitoring (7) | user-configured SSH destinations | while each host is enabled and network access is on | 4 MiB/frame; 64 MiB history cache/host |
 | Live reporting (6) | the service URL and the API host the user confirmed | only while the user has it on: every 5 s while agents work, a heartbeat while idle, nothing when quiet | 64 KiB discovery, 16 KiB API |
 
 ## 2. Update check
@@ -217,3 +219,30 @@ Avatar input stays local until upload: PNG/JPEG up to 10 MiB is re-encoded witho
 256×256 PNG up to 512 KiB. Profile JSON responses are bounded to 64 KiB; these separate limits do not raise
 the existing 16 KiB periodic report limit. Avatar URLs are website metadata; native clients download their
 own avatar through the signed API endpoint rather than following an arbitrary external image URL.
+
+
+## 7. Remote monitoring (opt-in SSH)
+
+No hosts are configured by default. Settings > Sources can opt into up to 16 SSH destinations. The network master
+switch stops all SSH sessions and retries. The system OpenSSH client uses existing SSH configuration and key agents,
+with `BatchMode=yes`, `StrictHostKeyChecking=yes`, no password storage, and no automatic host-key acceptance.
+Monitoring executes the configured, literal executable with stream, receiver-timezone and source-filter arguments.
+An explicit **Auto-deploy & connect / update** action additionally runs bundled platform-probe and installation
+scripts, transfers one bundled archive (at most 64 MiB) over SSH stdin, verifies its bundled SHA-256 on both ends,
+and runs the collector's runtime/SQLite self-check. The action has a 25 s probe / 180 s installation deadline,
+bounded 64 KiB command output, supports cancellation and stops when network access is disabled. It writes only
+the SSH user's application directory, never SSH configuration or a system service. No public download is needed.
+Previous version directories remain intact, and host configuration is updated only after successful installation.
+No collector listener port or HTTP service exists.
+
+The NDJSON v1 stream contains rates, token totals, model/mode metadata, daily cost/usage summaries, and SHA-256
+agent IDs. It never contains transcript text, prompts, project names or raw file paths. The collector reads logs
+under the SSH account and keeps its own history database. It does not fetch prices or send data to third parties.
+Remote data stays out of local process attribution, local transcript history, and external live reporting.
+
+One snapshot per second; bounded history chunks replace one complete generation atomically. Remote timestamps must
+be within 120 seconds of the receiver. After five seconds without a snapshot live values are zero; after 30 seconds
+without a complete frame the SSH session is killed and retried with 1–60 second exponential backoff. Desktop history
+caches are independently keyed by host/destination/executable/shell/timezone and validated again on load. Disabling a
+host or quitting terminates its SSH process. Stdin EOF also terminates the collector. Only local response events and
+local process traffic are supported. See [deployment, privacy and limitations](../docs/REMOTE.md).
