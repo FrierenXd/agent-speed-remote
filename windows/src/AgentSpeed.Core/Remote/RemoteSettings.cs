@@ -4,14 +4,15 @@ using System.Text.Json.Serialization;
 
 namespace AgentSpeed.Core.Remote;
 
-public sealed record RemoteHost(string Id, string Name, string Destination, string Executable = "agentspeed-collector", bool Enabled = true, string? Shell = null)
+public sealed record RemoteHost(string Id, string Name, string Destination, string Executable = "agentspeed-collector", bool Enabled = true, string? Shell = null, string? Authentication = null)
 {
     public bool IsValid => RemoteSettings.IsId(Id) && Id is not ("local" or "all")
         && Name is { Length: > 0 and <= 80 } && !Name.Any(char.IsControl)
         && Destination is { Length: > 0 and <= 255 } && Destination[0] != '-'
         && Destination.All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '_' or '-' or '@' or ':' or '[' or ']')
         && Executable is { Length: > 0 and <= 1024 } && !Executable.Any(char.IsControl)
-        && Shell is null or "posix" or "powershell";
+        && Shell is null or "posix" or "powershell"
+        && Authentication is null or "key" or "password";
 
     public ProcessStartInfo StartInfo(string timeZone, IReadOnlySet<SourceKind>? enabled = null)
     {
@@ -37,9 +38,12 @@ public sealed record RemoteHost(string Id, string Name, string Destination, stri
             UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true,
             RedirectStandardInput = true, CreateNoWindow = true,
         };
-        foreach (var argument in new[] { "-T", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes",
+        foreach (var argument in new[] { "-T", "-o", Authentication == "password" ? "BatchMode=no" : "BatchMode=yes", "-o", "StrictHostKeyChecking=yes",
             "-o", "ConnectTimeout=10", "-o", "ServerAliveInterval=10", "-o", "ServerAliveCountMax=2", "--", Destination,
             command }) start.ArgumentList.Add(argument);
+        if (Authentication == "password")
+            foreach (var option in new[] { "PreferredAuthentications=password", "PubkeyAuthentication=no", "KbdInteractiveAuthentication=no", "NumberOfPasswordPrompts=1", "PasswordAuthentication=yes", "ControlMaster=no", "ControlPath=none" })
+            { start.ArgumentList.Insert(0, option); start.ArgumentList.Insert(0, "-o"); }
         return start;
     }
 

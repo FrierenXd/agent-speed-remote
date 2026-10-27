@@ -46,11 +46,20 @@ final class SSHStream: @unchecked Sendable {
                 }
             }
             watchdog.resume()
+            var receivedFrame = false
             do {
+                if host.authentication == "password", RemotePasswords.shared.get(host).isEmpty {
+                    status("passwordRequired"); watchdog.cancel()
+                    errors.fileHandleForReading.readabilityHandler = nil
+                    return
+                }
+                let authentication = try SSHPasswordPrompt.configure(host, process: child)
+                defer { withExtendedLifetime(authentication) {} }
                 try lock.withLock {
                     guard !cancelled else { throw RemoteError.connectionClosed }
                     process = child; lastRead = ProcessInfo.processInfo.systemUptime
                     try child.run()
+                    try authentication?.started(child.processIdentifier)
                 }
                 var buffer = Data()
                 while !isCancelled, let bytes = try output.fileHandleForReading.read(upToCount: 8192), !bytes.isEmpty {
@@ -63,6 +72,7 @@ final class SSHStream: @unchecked Sendable {
                         guard abs(Date().timeIntervalSince1970 - Double(frame.timestampMs) / 1000) <= 120 else { throw RemoteError.staleClock }
                         lock.withLock { lastRead = ProcessInfo.processInfo.systemUptime }
                         status("connected"); receive(frame); backoff = 1
+                        receivedFrame = true
                     }
                     guard buffer.count <= RemoteFrame.maxLineBytes else { throw RemoteError.invalidFrame }
                 }
@@ -74,6 +84,10 @@ final class SSHStream: @unchecked Sendable {
             lock.withLock { if child.isRunning { kill(child.processIdentifier, SIGKILL) }; process = nil }
             if child.processIdentifier > 0 { child.waitUntilExit() }
             try? output.fileHandleForReading.close(); try? errors.fileHandleForReading.close()
+            if host.authentication == "password", child.processIdentifier > 0, !isCancelled,
+               child.terminationStatus == 255 || !receivedFrame {
+                status("authenticationFailed"); return
+            }
             for _ in 0..<(backoff * 10) { if isCancelled { return }; Thread.sleep(forTimeInterval: 0.1) }
             backoff = min(60, backoff * 2)
         }

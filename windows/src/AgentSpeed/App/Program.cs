@@ -9,6 +9,7 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if (Core.Remote.RemotePasswordPrompt.TryRunHelper(args) is { } askPass) return askPass;
         if (Traffic.HelperExtraction.TryRun(args) is { } extracted)
         {
             return extracted;

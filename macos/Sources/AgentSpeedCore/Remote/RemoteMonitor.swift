@@ -17,8 +17,10 @@ private final class RemoteHostState {
     var revision = 0
     let cacheURL: URL
     let timeZone: String
+    let passwordRevision: UInt64
     init(_ host: RemoteHost, cacheURL: URL, timeZone: String) {
         self.host = host; self.cacheURL = cacheURL; self.timeZone = timeZone
+        self.passwordRevision = RemotePasswords.shared.revision(for: host)
     }
 }
 
@@ -35,6 +37,7 @@ public final class RemoteMonitor {
     @ObservationIgnored private var settings = RemoteSettings()
     @ObservationIgnored private var enabled = Set(SourceKind.allCases)
     @ObservationIgnored private var networkEnabled = false
+    @ObservationIgnored private var passwordRevision = RemotePasswords.shared.revision
     @ObservationIgnored private var timeZone = TimeZone.current.identifier
     @ObservationIgnored private let cacheIO = DispatchQueue(label: "app.agentspeed.remote-cache", qos: .utility)
     @ObservationIgnored private var subsets: Set<SourceSet> = []
@@ -65,9 +68,11 @@ public final class RemoteMonitor {
     public func update(settings: RemoteSettings, networkEnabled: Bool, enabled: Set<SourceKind>) {
         guard settings.isValid else { return }
         let restart = self.networkEnabled != networkEnabled || self.enabled != enabled || timeZone != TimeZone.current.identifier
+        passwordRevision = RemotePasswords.shared.revision
         if settings.selection != self.settings.selection || enabled != self.enabled || settings.hosts != self.settings.hosts { peak = .zero; subsetPeaks = [:] }
         self.settings = settings; self.networkEnabled = networkEnabled; self.enabled = enabled; timeZone = TimeZone.current.identifier
-        for (id, state) in Array(hosts) where restart || !settings.hosts.contains(where: { $0.enabled && $0 == state.host }) {
+        for (id, state) in Array(hosts) where restart || state.passwordRevision != RemotePasswords.shared.revision(for: state.host)
+            || !settings.hosts.contains(where: { $0.enabled && $0 == state.host }) {
             state.stream?.stop(); hosts[id] = nil
         }
         for host in settings.hosts where host.enabled && hosts[host.id] == nil {
@@ -120,7 +125,7 @@ public final class RemoteMonitor {
         ((includesLocal ? localHistory.days : []) + selectedHosts.flatMap { $0.days.map(\.usage) }).filter { enabled.contains($0.source) }
     }
     private func tick() {
-        if timeZone != TimeZone.current.identifier { update(settings: settings, networkEnabled: networkEnabled, enabled: enabled) }
+        if timeZone != TimeZone.current.identifier || passwordRevision != RemotePasswords.shared.revision { update(settings: settings, networkEnabled: networkEnabled, enabled: enabled) }
         for state in hosts.values where state.status == "connected" && ProcessInfo.processInfo.systemUptime - state.received > 5 { state.status = "stale" }
         updateStatuses()
         if settings.selection != "local" { publish() }

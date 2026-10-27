@@ -7,8 +7,9 @@ No inbound collector port, daemon, cloud account or transcript synchronization i
 ## 1. 自动部署（推荐）
 
 正式桌面发行包内置六种系统/架构的采集器，不需要自己下载、上传或安装 .NET。
-先按第 2 节准备 SSH 密钥与已验证的主机指纹，然后在 **设置 → 数据源 → 远程主机** 添加主机、
-填写名称和 SSH 目标，点 **自动部署并连接 / 更新** 即可。无需填写采集器路径或手动选择架构。
+先按第 2 节验证主机指纹，然后在 **设置 → 数据源 → 远程主机** 添加主机、
+填写名称和 SSH 目标，选择密钥或密码认证；使用密码时填写 SSH 账户密码，
+点 **自动部署并连接 / 更新** 即可。无需填写采集器路径或手动选择架构。
 
 应用会自动识别 Linux/macOS/Windows 和 x64/ARM64，选择随桌面打包的版本，通过 SSH stdin 上传，
 在本地和远程都校验 SHA-256，解压后运行 `--check` 检查运行时及系统 SQLite，再保存绝对路径、
@@ -47,7 +48,8 @@ Windows 目标主机先启用 OpenSSH Server，解压 `win-x64` / `win-arm64` �
 
 ## 2. 准备 SSH
 
-桌面端使用系统 OpenSSH、已有的 SSH 配置与密钥，不保存密码，也不会弹出密码输入框。
+桌面端使用系统 OpenSSH、已有的 SSH 配置，支持**密钥 / SSH Agent**或**密码**认证。
+旧配置默认使用密钥，行为保持不变。密码在远程主机设置中通过遮掩输入框填写，不会弹出终端。
 Windows 桌面需要安装系统「OpenSSH 客户端」可选功能。建议在 `~/.ssh/config`
 （Windows 为 `%USERPROFILE%\.ssh\config`）中配置别名：
 
@@ -60,9 +62,29 @@ Host my-server
     IdentitiesOnly yes
 ```
 
-先在终端执行 `ssh my-server`，**通过可信渠道核对服务器指纹**并完成首次信任，确认密钥登录可用。
-加密私钥需先加载到 SSH agent。应用强制 `BatchMode=yes` 和 `StrictHostKeyChecking=yes`，
-不会自动接受未知服务器；非默认端口、跳板机和身份选择均写在 SSH config 中。
+先在终端执行 `ssh my-server`，**通过可信渠道核对服务器指纹**并完成首次信任。
+两种认证都强制 `StrictHostKeyChecking=yes`，不会自动接受未知服务器。
+非默认端口、跳板机和身份选择均写在 SSH config 中。
+
+### 密钥认证
+
+确认终端密钥登录可用；加密私钥需先加载到 SSH agent。应用使用 `BatchMode=yes`，
+保持系统 SSH 的密钥选择规则，不会自动回退到密码。
+
+### 密码认证
+
+服务器需允许 OpenSSH `PasswordAuthentication`。在应用中选「密码」，输入**远程账户的登录密码**，
+点「应用主机设置」或「自动部署并连接 / 更新」。密码会复用于平台探测、上传、统计连接与正常重连。
+
+- 仅在当前应用进程的内存中保留，**不写入配置、日志、命令行参数、环境变量或普通临时文件**。
+  Windows 使用当前用户专用命名管道；macOS 使用私有目录中的 FIFO。临时辅助脚本只含通信逻辑。
+  密码经受限 `SSH_ASKPASS` 辅助程序传给 OpenSSH，不占用上传或采集器的 stdin。
+- 退出/重启应用后需重新输入；移除主机或改用密钥并应用设置后会移除其会话凭据。
+- 一个连接最多提交一次密码。SSH 登录退出码 255 会暂停自动重试，避免错误密码反复尝试导致账户锁定；
+  请检查密码、网络和主机指纹，再点「应用主机设置」重连。已连接后的正常采集器重启仍可自动重连。
+- 密码模式不复用 SSH ControlMaster 的旧连接，确保所选认证和账户密码实际生效。
+- 仅支持普通账户密码，不支持 keyboard-interactive、OTP、多因素交互或私钥解密口令。
+  跳板机需要单独配置非交互密钥认证；密码辅助程序只响应目标 SSH 进程，拒绝把目标密码交给跳板子进程。
 
 不要把同一机器通过多个别名重复添加，否则会重复统计；应用只能检测相同目标字符串。
 远程账户的 SSH shell 配置不得向 stdout 输出欢迎语，否则会破坏统计协议。
@@ -73,6 +95,7 @@ Host my-server
 
 - 名称：例如「构建服务器」。远程 Agent 列表以此代替项目名。
 - SSH 目标：`my-server` 或 `alice@example.com`，不是 URL，也不是带端口的命令行。
+- SSH 认证方式：保留默认密钥，或选择密码并输入当前会话的 SSH 登录密码。
 - 采集器路径：使用远程**绝对路径**，例如 `/home/alice/.local/lib/agentspeed-collector/agentspeed-collector`。
   路径按字面量执行，不展开 `~`、环境变量，不接受附加命令行参数。
 - 远程 shell：Linux/macOS 选 POSIX；Windows 选 PowerShell，路径例如
@@ -127,7 +150,8 @@ exec /home/alice/.local/lib/agentspeed-collector/agentspeed-collector \
 
 ## 排障
 
-1. 在桌面终端确认 `ssh -o BatchMode=yes -o StrictHostKeyChecking=yes my-server true` 成功。
+1. 在桌面终端确认 `ssh -o StrictHostKeyChecking=yes my-server true` 成功；密钥模式可再加 `-o BatchMode=yes`。
+   密码模式需检查服务端允许密码认证、应用选择了「密码」且已输入密码并应用设置。
 2. 手动检查采集器：`ssh -T my-server '/absolute/path/agentspeed-collector --stream --timezone UTC'`，
    应持续输出 JSON 行；`Ctrl-C` 退出。不要使用 `ssh -n`，stdin 关闭会让采集器退出。
 3. 断开：检查 SSH config、已验证的 known_hosts、私钥 agent、绝对路径和目标系统运行依赖。

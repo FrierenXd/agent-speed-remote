@@ -15,6 +15,14 @@
      </DockPanel>
      <TextBlock Text="{loc:Loc remote.name}" /><TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
      <TextBlock Text="{loc:Loc remote.destination}" /><TextBox Text="{Binding Destination, UpdateSourceTrigger=PropertyChanged}" />
+     <TextBlock Text="{loc:Loc remote.authentication}" />
+     <ComboBox SelectedValue="{Binding Authentication}" SelectedValuePath="Tag">
+      <ComboBoxItem Content="{loc:Loc remote.authentication.key}" Tag="key" />
+      <ComboBoxItem Content="{loc:Loc remote.authentication.password}" Tag="password" />
+     </ComboBox>
+     <TextBlock Text="{loc:Loc remote.password}" />
+     <PasswordBox IsEnabled="{Binding IsPassword}" IsEnabledChanged="PasswordEnabledChanged" PasswordChanged="PasswordChanged" Loaded="PasswordLoaded" MaxLength="1024" />
+     <TextBlock Text="{loc:Loc remote.password.hint}" TextWrapping="Wrap" />
      <TextBlock Text="{loc:Loc remote.executable}" /><TextBox Text="{Binding Executable, UpdateSourceTrigger=PropertyChanged}" />
      <TextBlock Text="{loc:Loc remote.shell}" />
      <ComboBox SelectedValue="{Binding Shell}" SelectedValuePath="Tag">

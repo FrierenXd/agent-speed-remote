@@ -5047,10 +5047,10 @@
     "ja": "有効な表示名、重複しない SSH 接続先、コレクターのパスを入力してください（最大16台）。"
   },
   "remote.hint": {
-    "zh-Hant": "選用功能：透過系統 SSH 讀取遠端統計，不傳送對話或專案路徑。採集器可自動部署；請先在終端核對主機指紋並設定金鑰登入。SSH config 支援跳板機與連接埠。網路總開關會停止連線；網路流量與排行榜上報仍僅計本機。",
-    "zh-Hans": "可选功能：通过系统 SSH 读取远程统计，不传输对话或项目路径。采集器可自动部署；请先在终端核对主机指纹并配置密钥登录。SSH config 支持跳板机和端口。网络总开关会停止连接；网络流量与排行榜上报仍仅计本机。",
-    "en": "Optional: read remote statistics over system SSH, without conversations or project paths. The collector can be auto-deployed; first verify host keys and key-based login in a terminal. Use SSH config for ports and jump hosts. The network master switch stops connections; traffic and leaderboard reporting remain local-only.",
-    "ja": "任意機能：システム SSH 経由で統計のみを取得し、会話やプロジェクトのパスは転送しません。コレクターは自動配置できます。事前に端末でホスト鍵と鍵認証を確認してください。ポートや踏み台は SSH config で設定します。通信の全体スイッチで停止でき、通信量とランキング送信はローカルのみです。"
+    "zh-Hant": "選用功能：透過系統 SSH 讀取遠端統計，不傳送對話或專案路徑。支援金鑰或密碼登入及自動部署；請先在終端核對主機指紋。SSH config 支援連接埠；跳板機需獨立金鑰驗證。網路總開關會停止連線；流量及排行榜仍僅計本機。",
+    "zh-Hans": "可选功能：通过系统 SSH 读取远程统计，不传输对话或项目路径。支持密钥或密码登录及自动部署；请先在终端核对主机指纹。SSH config 支持端口；跳板机需单独配置密钥认证。网络总开关会停止连接；流量及排行榜仍仅计本机。",
+    "en": "Optional remote statistics over system SSH, without conversations or project paths. Supports keys or passwords and automatic deployment; verify host keys in a terminal first. Configure ports in SSH config; jump hosts need their own key authentication. The network master switch stops connections; traffic and reporting remain local-only.",
+    "ja": "システム SSH で会話やパスを含まない統計を取得します。鍵・パスワード認証と自動配置に対応。事前に端末でホスト鍵を確認してください。ポートは SSH config、踏み台は別途鍵認証を設定します。通信スイッチで接続を停止でき、通信量とランキングはローカルのみです。"
   },
   "remote.status.connecting": {
     "zh-Hant": "連線中",
@@ -5095,10 +5095,10 @@
     "ja": "自動配置して接続 / 更新"
   },
   "remote.deploy.hint": {
-    "zh-Hant": "填寫 SSH 目標後即可自動識別平台、上傳內建採集器並連線。不需手動上傳或管理員權限；仍須先信任 SSH 主機指紋。",
-    "zh-Hans": "填写 SSH 目标后即可自动识别平台、上传内置采集器并连接。无需手动上传或管理员权限；仍须先信任 SSH 主机指纹。",
-    "en": "Enter an SSH destination to detect its platform, upload the bundled collector and connect. No manual upload or administrator access; SSH host trust and key authentication must already be configured.",
-    "ja": "SSH 接続先を入力すると、環境を判別し、同梱コレクターを転送して接続します。手動転送や管理者権限は不要です。SSH ホストの信頼と鍵認証は事前に設定してください。"
+    "zh-Hant": "填寫 SSH 目標並選擇金鑰或密碼後，即可自動識別平台、上傳內建採集器並連線。不需管理員權限；仍須先信任 SSH 主機指紋。",
+    "zh-Hans": "填写 SSH 目标并选择密钥或密码后，即可自动识别平台、上传内置采集器并连接。无需管理员权限；仍须先信任 SSH 主机指纹。",
+    "en": "Enter an SSH destination and choose key or password authentication to detect the platform, upload the bundled collector and connect. No administrator access; SSH host trust must already be configured.",
+    "ja": "接続先と鍵・パスワード認証を設定すると、環境を判別し同梱コレクターを転送して接続します。管理者権限は不要ですが、ホスト鍵の信頼設定が必要です。"
   },
   "remote.deploy.cancel": {
     "zh-Hant": "取消部署",
@@ -5141,5 +5141,53 @@
     "zh-Hans": "请先开启网络总开关，再部署采集器。",
     "en": "Enable network access before deploying the collector.",
     "ja": "配置する前にネットワークを有効にしてください。"
+  },
+  "remote.authentication": {
+    "zh-Hant": "SSH 驗證方式",
+    "zh-Hans": "SSH 认证方式",
+    "en": "SSH authentication",
+    "ja": "SSH 認証方法"
+  },
+  "remote.authentication.key": {
+    "zh-Hant": "金鑰 / SSH Agent",
+    "zh-Hans": "密钥 / SSH Agent",
+    "en": "Key / SSH agent",
+    "ja": "鍵 / SSH Agent"
+  },
+  "remote.authentication.password": {
+    "zh-Hant": "密碼",
+    "zh-Hans": "密码",
+    "en": "Password",
+    "ja": "パスワード"
+  },
+  "remote.password": {
+    "zh-Hant": "SSH 密碼（僅本次執行）",
+    "zh-Hans": "SSH 密码（仅本次运行）",
+    "en": "SSH password (this session only)",
+    "ja": "SSH パスワード（今回のみ）"
+  },
+  "remote.password.hint": {
+    "zh-Hant": "密碼只保留在記憶體，用於部署、連線及重新連線；不寫入設定或日誌。重新啟動後需再輸入。僅支援帳號密碼，不支援 OTP。",
+    "zh-Hans": "密码只保留在内存，用于部署、连接及重连；不写入配置或日志。重启后需重新输入。仅支持账户密码，不支持 OTP。",
+    "en": "Kept in memory for deployment, connection and reconnect; never saved in settings or logs. Re-enter after restarting. Account passwords only, not OTP.",
+    "ja": "配置・接続・再接続用にメモリ内だけに保持し、設定やログには保存しません。再起動後は再入力が必要です。OTP は非対応です。"
+  },
+  "remote.password.invalid": {
+    "zh-Hant": "密碼不可包含換行或 NUL，且長度不可超過 1024 字元（macOS：3072 位元組）。",
+    "zh-Hans": "密码不能包含换行或 NUL，且长度不能超过 1024 字符（macOS：3072 字节）。",
+    "en": "Use a single-line password, without NUL, up to 1024 characters (macOS: 3072 bytes).",
+    "ja": "改行・NUL なしのパスワードを入力してください。最大1024文字（macOS：3072バイト）です。"
+  },
+  "remote.status.passwordRequired": {
+    "zh-Hant": "請輸入 SSH 密碼並套用設定",
+    "zh-Hans": "请输入 SSH 密码并应用设置",
+    "en": "Enter an SSH password and apply settings",
+    "ja": "SSH パスワードを入力して設定を適用してください"
+  },
+  "remote.status.authenticationFailed": {
+    "zh-Hant": "SSH 登入失敗；請檢查密碼、主機指紋及網路後重新套用（已暫停重試）",
+    "zh-Hans": "SSH 登录失败；请检查密码、主机指纹和网络后重新应用（已暂停重试）",
+    "en": "SSH login failed; check password, host trust and network, then apply again (retries paused)",
+    "ja": "SSH ログイン失敗。パスワード・ホスト鍵・接続を確認して再適用してください（再試行停止中）"
   }
 }

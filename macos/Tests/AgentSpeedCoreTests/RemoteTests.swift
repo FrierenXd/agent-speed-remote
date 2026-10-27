@@ -4,6 +4,63 @@ import Testing
 
 @Suite("Remote host statistics")
 struct RemoteTests {
+    @Test func passwordsAreSessionOnlyAndDestinationScoped() throws {
+        let host = RemoteHost(destination: "user@server", authentication: "password")
+        let secret = "test ' $ \\ 密码"
+        try RemotePasswords.shared.set(host, password: secret)
+        defer { try? RemotePasswords.shared.set(host, password: "") }
+        let data = try JSONEncoder().encode(host)
+        #expect(try JSONDecoder().decode(RemoteHost.self, from: data) == host)
+        #expect(!String(decoding: data, as: UTF8.self).contains(secret))
+        var another = host; another.destination = "another-host"
+        #expect(RemotePasswords.shared.get(another).isEmpty)
+        let args = host.arguments(timeZone: "UTC", sources: [.codex])
+        #expect(args.contains("BatchMode=no"))
+        #expect(args.contains("StrictHostKeyChecking=yes"))
+        #expect(args.contains("ControlPath=none"))
+        #expect(!args.joined().contains(secret))
+        #expect(throws: (any Error).self) { try RemotePasswords.shared.set(host, password: "bad\npassword") }
+        another.authentication = "otp"; #expect(!another.isValid)
+        let legacy = try JSONDecoder().decode(RemoteHost.self, from: Data(#"{"id":"old","name":"Old","destination":"server","executable":"collector","enabled":true}"#.utf8))
+        #expect(legacy.arguments(timeZone: "UTC", sources: []).contains("BatchMode=yes"))
+    }
+
+    @Test func passwordHelperUsesPrivateIPCAndRejectsProxyChildren() throws {
+        let host = RemoteHost(destination: "user@server", authentication: "password")
+        let secret = "test ' $ \\ 密码"
+        try RemotePasswords.shared.set(host, password: secret)
+        defer { try? RemotePasswords.shared.set(host, password: "") }
+        var directory: URL?
+        do {
+            let child = Process(), output = Pipe()
+            child.executableURL = URL(fileURLWithPath: "/bin/sh")
+            child.arguments = ["-c", "\"$SSH_ASKPASS\" \"user@server's password: \""]
+            child.standardOutput = output
+            let authentication = try #require(try SSHPasswordPrompt.configure(host, process: child))
+            let env = try #require(child.environment)
+            #expect(!env.values.contains(secret))
+            let helper = try #require(env["SSH_ASKPASS"])
+            directory = URL(fileURLWithPath: helper).deletingLastPathComponent()
+            #expect(!((try String(contentsOfFile: helper, encoding: .utf8)).contains(secret)))
+            let mode = try FileManager.default.attributesOfItem(atPath: directory!.path)[.posixPermissions] as? NSNumber
+            #expect(mode?.intValue == 0o700)
+            try child.run(); try authentication.started(child.processIdentifier)
+            let data = output.fileHandleForReading.readDataToEndOfFile()
+            child.waitUntilExit()
+            #expect(String(decoding: data, as: UTF8.self) == secret + "\n")
+            #expect(child.terminationStatus == 0)
+            try authentication.started(ProcessInfo.processInfo.processIdentifier)
+            let proxy = Process(), rejected = Pipe()
+            proxy.executableURL = child.executableURL; proxy.arguments = child.arguments; proxy.environment = env
+            proxy.standardOutput = rejected
+            try proxy.run()
+            #expect(rejected.fileHandleForReading.readDataToEndOfFile().isEmpty)
+            proxy.waitUntilExit(); #expect(proxy.terminationStatus != 0)
+            withExtendedLifetime(authentication) {}
+        }
+        #expect(!FileManager.default.fileExists(atPath: try #require(directory).path))
+    }
+
     @Test func deploymentPlatformParsing() throws {
         for rid in RemoteDeployment.runtimes {
             #expect(try RemoteDeployment.parseProbe("AGENTSPEED_DEPLOY_V1\r\n\(rid)\r\n") == rid)

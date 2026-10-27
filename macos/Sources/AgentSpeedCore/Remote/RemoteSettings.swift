@@ -7,11 +7,13 @@ public struct RemoteHost: Codable, Equatable, Sendable, Identifiable {
     public var executable: String
     public var enabled: Bool
     public var shell: String?
+    public var authentication: String?
 
     public init(id: String = UUID().uuidString, name: String = "Server", destination: String = "",
-                executable: String = "agentspeed-collector", enabled: Bool = true, shell: String? = nil) {
+                executable: String = "agentspeed-collector", enabled: Bool = true, shell: String? = nil, authentication: String? = nil) {
         self.id = id; self.name = name; self.destination = destination
         self.executable = executable; self.enabled = enabled; self.shell = shell
+        self.authentication = authentication
     }
     public var isValid: Bool {
         Self.isID(id) && !["local", "all"].contains(id) && !name.isEmpty && name.utf8.count <= 80
@@ -21,6 +23,7 @@ public struct RemoteHost: Codable, Equatable, Sendable, Identifiable {
             && !executable.isEmpty && executable.utf8.count <= 1024
             && !executable.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) })
             && (shell == nil || ["posix", "powershell"].contains(shell!))
+            && (authentication == nil || ["key", "password"].contains(authentication!))
     }
     static func alphaNumeric(_ c: UInt8) -> Bool { (48...57).contains(c) || (65...90).contains(c) || (97...122).contains(c) }
     static func isID(_ text: String) -> Bool {
@@ -39,7 +42,10 @@ public struct RemoteHost: Codable, Equatable, Sendable, Identifiable {
         return commandArguments(command)
     }
     func commandArguments(_ command: String) -> [String] {
-        ["-T", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes", "-o", "ConnectTimeout=10",
+        let options = authentication == "password"
+            ? ["PreferredAuthentications=password", "PubkeyAuthentication=no", "KbdInteractiveAuthentication=no", "NumberOfPasswordPrompts=1", "PasswordAuthentication=yes", "ControlMaster=no", "ControlPath=none"].flatMap { ["-o", $0] }
+            : []
+        return options + ["-T", "-o", authentication == "password" ? "BatchMode=no" : "BatchMode=yes", "-o", "StrictHostKeyChecking=yes", "-o", "ConnectTimeout=10",
                 "-o", "ServerAliveInterval=10", "-o", "ServerAliveCountMax=2", "--", destination, command]
     }
 }

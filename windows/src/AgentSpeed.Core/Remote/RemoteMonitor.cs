@@ -26,6 +26,7 @@ public sealed class RemoteMonitor : IDisposable
         public string CachePath = cachePath;
         public bool HistoryLoaded;
         public int CacheRevision;
+        public long PasswordRevision = RemotePasswords.RevisionFor(host);
     }
 
     private readonly object _gate = new();
@@ -53,6 +54,7 @@ public sealed class RemoteMonitor : IDisposable
     private string _timeZone = TimeZoneInfo.Local.Id;
     private bool _disposed;
     private bool _networkEnabled;
+    private long _passwordRevision = RemotePasswords.Revision;
     private SpeedSnapshot _localSnapshot = SpeedSnapshot.Empty;
 
     public RemoteMonitor(SpeedHub local, HistoryHub localHistory, SpeedHub output, HistoryHub history, string cacheDirectory)
@@ -84,12 +86,13 @@ public sealed class RemoteMonitor : IDisposable
             if (_disposed) return;
             if (_settings.Selection != settings.Selection || !_enabled.SetEquals(enabled) || !_settings.Hosts.SequenceEqual(settings.Hosts)) { _peak = Rate.Zero; _subsetPeaks.Clear(); }
             var restart = _timeZone != TimeZoneInfo.Local.Id || _networkEnabled != networkEnabled || !_enabled.SetEquals(enabled);
+            _passwordRevision = RemotePasswords.Revision;
             _networkEnabled = networkEnabled;
             _timeZone = TimeZoneInfo.Local.Id;
             _enabled = enabled;
             _settings = settings;
             foreach (var (id, state) in _hosts.ToArray())
-                if (restart || !settings.Hosts.Any(h => h.Enabled && h == state.Host))
+                if (restart || state.PasswordRevision != RemotePasswords.RevisionFor(state.Host) || !settings.Hosts.Any(h => h.Enabled && h == state.Host))
                 {
                     Interlocked.Increment(ref state.CacheRevision); state.Stop.Cancel();
                     _hosts.Remove(id);
@@ -163,7 +166,7 @@ public sealed class RemoteMonitor : IDisposable
         lock (_gate)
         {
             if (_disposed) return;
-            if (_timeZone != TimeZoneInfo.Local.Id) Update(_settings, _networkEnabled, _enabled);
+            if (_timeZone != TimeZoneInfo.Local.Id || _passwordRevision != RemotePasswords.Revision) Update(_settings, _networkEnabled, _enabled);
             foreach (var state in _hosts.Values)
                 if (state.Received != 0 && Stopwatch.GetElapsedTime(state.Received).TotalSeconds > 5 && state.Status == "connected") state.Status = "stale";
             if (_settings.Selection != "local") Publish();

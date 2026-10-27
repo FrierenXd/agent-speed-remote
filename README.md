@@ -106,7 +106,7 @@ Ordinary Claude Desktop chat conversations are not stored on your computer, so t
 
 In **Settings → Sources → Remote Hosts**, add SSH destinations and switch between local, a single remote host, or
 all hosts. Click **Auto-deploy & connect / update** to detect the remote platform, upload the bundled collector,
-verify it and connect; no manual upload or administrator privileges. SSH key authentication and verified host
+verify it and connect; no manual upload or administrator privileges. SSH key or session-only password authentication and verified host
 trust must already work. Manual collector paths are still supported. It sends statistics, not transcripts.
 See [deployment and limitations](docs/REMOTE.md). Build collector archives with
 `./scripts/publish-collector.sh linux-x64` (.NET 10 SDK required).

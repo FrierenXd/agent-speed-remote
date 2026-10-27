@@ -105,7 +105,9 @@ public sealed class RemoteDeployment(Func<string, Stream?> openAsset)
         deadline.CancelAfter(timeout);
         token.ThrowIfCancellationRequested();
         using var child = new Process { StartInfo = ConfigureStart(host.CommandStartInfo(command)) };
+        using var authentication = RemotePasswordPrompt.Configure(host, child.StartInfo);
         child.Start();
+        authentication?.Started(child.Id);
         void Kill() { try { if (!child.HasExited) child.Kill(entireProcessTree: true); } catch (Exception e) when (e is InvalidOperationException or System.ComponentModel.Win32Exception) { } }
         using var registration = deadline.Token.Register(Kill);
         async Task<T> Guard<T>(Task<T> task)

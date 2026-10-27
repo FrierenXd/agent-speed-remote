@@ -151,6 +151,8 @@ public final class RemoteDeployment: @unchecked Sendable {
         child.executableURL = URL(fileURLWithPath: "/usr/bin/ssh")
         child.arguments = host.commandArguments(command)
         child.standardInput = stdin; child.standardOutput = output; child.standardError = errors
+        let authentication = try SSHPasswordPrompt.configure(host, process: child)
+        defer { withExtendedLifetime(authentication) {} }
         #if canImport(Darwin)
         // A disconnect during upload must throw, not terminate the desktop with SIGPIPE.
         _ = fcntl(stdin.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1)
@@ -158,6 +160,7 @@ public final class RemoteDeployment: @unchecked Sendable {
         try lock.withLock {
             guard !cancelled else { throw CancellationError() }
             try child.run(); process = child; timedOut = false
+            try authentication?.started(child.processIdentifier)
         }
         let watchdog = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
         let pid = child.processIdentifier

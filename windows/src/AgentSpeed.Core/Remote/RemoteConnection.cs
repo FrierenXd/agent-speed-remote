@@ -4,7 +4,7 @@ using System.Text;
 
 namespace AgentSpeed.Core.Remote;
 
-/// <summary>One read-only SSH stream. Authentication and known hosts stay in the system SSH configuration.</summary>
+/// <summary>One read-only SSH stream, preserving system host trust and optional session-only password authentication.</summary>
 public sealed class RemoteConnection
 {
     public static async IAsyncEnumerable<string> Lines(Stream stream, [EnumeratorCancellation] CancellationToken cancellationToken)
@@ -38,10 +38,10 @@ public sealed class RemoteConnection
 
     public static async Task Run(RemoteHost host, string timeZone, Action<RemoteFrame> receive, Action<string> status,
         CancellationToken cancellationToken, IReadOnlySet<SourceKind>? enabled = null) =>
-        await RunCore(() => host.StartInfo(timeZone, enabled), timeZone, receive, status, cancellationToken).ConfigureAwait(false);
+        await RunCore(() => host.StartInfo(timeZone, enabled), timeZone, receive, status, cancellationToken, host).ConfigureAwait(false);
 
     internal static async Task RunCore(Func<ProcessStartInfo> startInfo, string timeZone, Action<RemoteFrame> receive,
-        Action<string> status, CancellationToken cancellationToken)
+        Action<string> status, CancellationToken cancellationToken, RemoteHost? authenticationHost = null)
     {
         var delay = 1;
         while (!cancellationToken.IsCancellationRequested)
@@ -49,11 +49,17 @@ public sealed class RemoteConnection
             status("connecting");
             using var process = new Process { StartInfo = startInfo() };
             var started = false;
+            var receivedFrame = false;
+            RemotePasswordPrompt? authentication = null;
             Task? drain = null;
             try
             {
+                if (authenticationHost?.Authentication == "password" && RemotePasswords.Get(authenticationHost).Length == 0)
+                { status("passwordRequired"); return; }
+                authentication = RemotePasswordPrompt.Configure(authenticationHost, process.StartInfo);
                 process.Start();
                 started = true;
+                authentication?.Started(process.Id);
                 using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 var streamToken = lifetime.Token;
                 // Killing independently of ReadAsync also unblocks platforms with synchronous anonymous pipes.
@@ -74,15 +80,24 @@ public sealed class RemoteConnection
                     if (Math.Abs(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - frame.TimestampMs) > 120_000)
                         throw new IOException("Remote clock differs by more than two minutes.");
                     status("connected");
+                    receivedFrame = true;
                     receive(frame);
                     lifetime.CancelAfter(TimeSpan.FromSeconds(30));
                     delay = 1;
                 }
                 status("disconnected");
+                if (authenticationHost?.Authentication == "password")
+                {
+                    await process.WaitForExitAsync(streamToken).ConfigureAwait(false);
+                    // Do not repeatedly submit a bad password and lock the remote account.
+                    if (process.ExitCode == 255) { status("authenticationFailed"); return; }
+                }
             }
             catch (Exception e) when (e is IOException or System.Text.Json.JsonException or ArgumentException
-                or System.ComponentModel.Win32Exception or OperationCanceledException)
+                or System.ComponentModel.Win32Exception or OperationCanceledException or UnauthorizedAccessException)
             {
+                if (authenticationHost?.Authentication == "password" && started && !receivedFrame && !cancellationToken.IsCancellationRequested)
+                { status("authenticationFailed"); return; }
                 status(e is System.Text.Json.JsonException ? "protocolError" : "disconnected");
             }
             finally
@@ -94,6 +109,7 @@ public sealed class RemoteConnection
                     try { await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false); }
                     catch (Exception e) when (e is InvalidOperationException or TimeoutException or System.ComponentModel.Win32Exception) { }
                 }
+                authentication?.Dispose();
             }
             if (cancellationToken.IsCancellationRequested) break;
             try { await Task.Delay(TimeSpan.FromSeconds(delay), cancellationToken).ConfigureAwait(false); }

@@ -73,6 +73,9 @@ jobs:
           AGENT_SPEED_PREBUILT_COLLECTORS: '1'
         shell: pwsh
         run: ./windows/scripts/publish.ps1 -Version $env:GITHUB_REF_NAME.TrimStart('v')
+      - name: Test packaged SSH password helper
+        shell: pwsh
+        run: ./scripts/test-windows-askpass.ps1
       - uses: actions/upload-artifact@v7
         with:
           name: AgentSpeed-Windows
@@ -89,6 +92,13 @@ jobs:
           dotnet-version: 10.0.x
       - run: dotnet test windows/tests/AgentSpeed.Core.Tests -c Release --filter FullyQualifiedName~Remote
       - run: ./scripts/publish-collector.sh
+      - run: python3 scripts/package-collectors.py
+      - name: Exercise SSH key and password authentication
+        run: |
+          command -v sshd || (sudo apt-get update && sudo apt-get install -y openssh-server)
+          sudo install -d -m 0755 /run/sshd
+          sudo python3 scripts/test-remote-ssh.py --dotnet "$(command -v dotnet)"
+          sudo python3 scripts/test-remote-password.py --dotnet "$(command -v dotnet)"
       - uses: actions/upload-artifact@v7
         with:
           name: AgentSpeed-Collectors

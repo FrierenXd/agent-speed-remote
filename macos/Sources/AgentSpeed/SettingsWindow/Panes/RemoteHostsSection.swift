@@ -8,6 +8,7 @@ struct RemoteHostsSection: View {
     @State private var deployment: Task<Void, Never>?
     @State private var deploymentStatus = ""
     @State private var deploymentError = ""
+    @State private var passwords: [String: String] = [:]
 
     var body: some View {
         let l10n = model.l10n
@@ -28,6 +29,14 @@ struct RemoteHostsSection: View {
                     }
                     TextField(l10n("remote.name"), text: $host.name)
                     TextField(l10n("remote.destination"), text: $host.destination)
+                    Picker(l10n("remote.authentication"), selection: Binding(get: { host.authentication ?? "key" }, set: { host.authentication = $0 })) {
+                        Text(l10n("remote.authentication.key")).tag("key")
+                        Text(l10n("remote.authentication.password")).tag("password")
+                    }
+                    if host.authentication == "password" {
+                        SecureField(l10n("remote.password"), text: Binding(get: { passwords[host.id] ?? "" }, set: { passwords[host.id] = $0 }))
+                        Text(l10n("remote.password.hint")).font(.caption).foregroundStyle(.secondary)
+                    }
                     TextField(l10n("remote.executable"), text: $host.executable)
                     Picker(l10n("remote.shell"), selection: Binding(get: { host.shell ?? "posix" }, set: { host.shell = $0 })) {
                         Text("POSIX (Linux / macOS)").tag("posix")
@@ -54,7 +63,10 @@ struct RemoteHostsSection: View {
         } footer: {
             SectionFootnote(l10n("remote.hint") + "\n" + l10n("remote.deploy.hint"))
         }
-        .onAppear { hosts = model.settings.remote.hosts }
+        .onAppear {
+            hosts = model.settings.remote.hosts
+            passwords = Dictionary(uniqueKeysWithValues: hosts.map { ($0.id, RemotePasswords.shared.get($0)) })
+        }
         .onDisappear { deployment?.cancel() }
         .onChange(of: model.settings.networkEnabled) { _, enabled in if !enabled { deployment?.cancel() } }
     }
@@ -62,6 +74,7 @@ struct RemoteHostsSection: View {
         guard deployment == nil else { return }
         guard model.settings.networkEnabled else { deploymentError = model.l10n("remote.deploy.networkOff"); return }
         guard RemoteSettings(hosts: hosts).isValid else { error = true; return }
+        guard savePasswords() else { return }
         error = false; deploymentError = ""; deploymentStatus = "probing"
         let assets = (Bundle.main.resourceURL ?? Bundle.main.bundleURL).appendingPathComponent("Collectors")
         deployment = Task { @MainActor in
@@ -83,6 +96,18 @@ struct RemoteHostsSection: View {
         let selection = model.settings.remote.selection
         let remote = RemoteSettings(hosts: hosts, selection: ["local", "all"].contains(selection) || hosts.contains { $0.id == selection } ? selection : "local")
         error = !remote.isValid
-        if remote.isValid { model.settings.remote = remote }
+        if remote.isValid, savePasswords() { model.settings.remote = remote }
+    }
+    private func savePasswords() -> Bool {
+        let passwordHosts = hosts.filter { $0.authentication == "password" }
+        guard passwordHosts.allSatisfy({ host in
+            let password = passwords[host.id] ?? ""
+            return password.utf8.count <= 3072 && !password.contains(where: { $0 == "\0" || $0 == "\r" || $0 == "\n" })
+        }) else { deploymentError = model.l10n("remote.password.invalid"); return false }
+        RemotePasswords.shared.retain(hosts)
+        for host in passwordHosts { try? RemotePasswords.shared.set(host, password: passwords[host.id] ?? "") }
+        passwords = passwords.filter { id, _ in passwordHosts.contains { $0.id == id } }
+        deploymentError = ""
+        return true
     }
 }
